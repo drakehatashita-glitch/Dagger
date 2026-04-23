@@ -1,0 +1,392 @@
+# ─── GLOBAL SETTINGS ─────────────────────────────────────────────
+settings:
+  broadcast-craft: true
+
+# ─── PER-DAGGER CONFIG ───────────────────────────────────────────
+# All durations are in SECONDS. Damage is in HP (2 HP = 1 heart).
+# Potion amplifiers are zero-indexed (0 = level I, 1 = level II, ...).
+daggers:
+
+  # ── STRENGTH ─────────────────────────────────
+  strength:
+    craft-limit: 1
+    passive:
+      strength-amplifier: 0
+    ability1:
+      cooldown-seconds: 90
+      duration-seconds: 3
+      amplifier: 2
+    ability2:
+      cooldown-seconds: 60
+      armor-durability-percent: 0.15
+
+  # ── SPEED ────────────────────────────────────
+  speed:
+    craft-limit: 1
+    passive:
+      speed-amplifier: 2
+    ability1:
+      cooldown-seconds: 30
+      duration-seconds: 7
+      amplifier: 4
+    ability2:
+      cooldown-seconds: 70
+      attack-speed-bonus: 0.5
+      duration-seconds: 7
+
+  # ── WIND ─────────────────────────────────────
+  wind:
+    craft-limit: 1
+    passive:
+      speed-amplifier: 0
+      no-fall-damage: true
+    ability1:
+      cooldown-seconds: 20
+      dash-blocks: 35.0
+      fall-immune-seconds: 10
+    ability2:
+      cooldown-seconds: 50
+      launch-upward: 2.6
+      shockwave-damage: 6.0
+      shockwave-radius: 5.0
+
+  # ── LIFE ─────────────────────────────────────
+  life:
+    craft-limit: 1
+    passive:
+      max-health-bonus: 10.0
+    ability1:
+      cooldown-seconds: 40
+      steal-hearts: 3.0
+      radius: 5.0
+      bonus-hearts-per-player: 6.0
+      extra-health-duration-seconds: 10
+    ability2:
+      cooldown-seconds: 45
+      duration-seconds: 5
+      regen-amplifier: 1
+      radius: 10.0
+
+  # ── CRIMSON ──────────────────────────────────
+  crimson:
+    craft-limit: 1
+    passive:
+      fire-resistance-amplifier: 0
+      haste-amplifier: 0
+    ability1:
+      cooldown-seconds: 30
+      wither-duration-seconds: 4
+      wither-amplifier: 2
+    ability2:
+      cooldown-seconds: 90
+      damage: 6.0
+      explosion-power: 2.0
+
+  # ── DARKNESS ─────────────────────────────────
+  darkness:
+    craft-limit: 1
+    passive:
+      strength-amplifier: 0
+      slowness-amplifier: 0
+    ability1:
+      cooldown-seconds: 25
+      radius: 5.0
+      duration-seconds: 5
+      slowness-amplifier: 2
+      darkness-amplifier: 0
+    ability2:
+      cooldown-seconds: 90
+      beam-damage: 6.0
+      max-distance: 30.0
+
+  # ── HACK ─────────────────────────────────────
+  hack:
+    craft-limit: 1
+    passive:
+      haste-amplifier: 0
+      speed-amplifier: 0
+    ability1:
+      cooldown-seconds: 90
+      reveal-radius: 50.0
+      glow-duration-seconds: 30
+    ability2:
+      cooldown-seconds: 60
+      hitbox-duration-seconds: 5
+      damage-multiplier: 1.5
+
+  # ── FROST ────────────────────────────────────
+  frost:
+    craft-limit: 1
+    passive:
+      slowness-chance: 0.05
+      slowness-amplifier: 1
+      slowness-duration-seconds: 3
+    ability1:
+      cooldown-seconds: 50
+      radius: 5.0
+      freeze-duration-seconds: 5
+      slowness-amplifier: 6
+      mining-fatigue-amplifier: 2
+    ability2:
+      cooldown-seconds: 30
+      radius: 5.0
+      debuff-duration-seconds: 5
+      incoming-damage-multiplier: 1.15  # frosted enemies take 15% extra damage
+
+  # ── MAFIA ────────────────────────────────────
+  mafia:
+    craft-limit: 1
+    passive:
+      invisibility-amplifier: 0
+    ability1:
+      cooldown-seconds: 25
+      debuff-duration-seconds: 3
+      poison-amplifier: 0
+      weakness-amplifier: 0
+      hunger-amplifier: 0
+    ability2:
+      cooldown-seconds: 45
+      vindicator-count: 4
+      vindicator-name: "§6Johnny"
+      teleport-distance: 16.0
+      combat-teleport-distance: 24.0
+
+  # ── PIRATE ───────────────────────────────────
+  pirate:
+    craft-limit: 1
+    passive:
+      water-breathing-amplifier: 0
+    ability1:
+      cooldown-seconds: 30
+      duration-seconds: 15
+      amplifier: 0
+    ability2:
+      cooldown-seconds: 30
+      push-blocks: 25.0
+      radius: 8.0
+
+  # ── VOID ─────────────────────────────────────
+  void:
+    craft-limit: 1
+    passive:
+      speed-amplifier: 1
+      strength-amplifier: 0
+      backstab-bonus: 0.25
+      teleport-cooldown-seconds: 30
+    ability1:
+      cooldown-seconds: 25
+      teleport-blocks: 20.0
+    ability2:
+      cooldown-seconds: 80
+      return-seconds: 300
+
+  # ── LUCKY ────────────────────────────────────
+  lucky:
+    craft-limit: 1
+    passive:
+      hero-amplifier: 0
+      luck-amplifier: 2
+      totem-chance: 0.20
+    ability1:
+      cooldown-seconds: 30
+      effect-count: 3
+      duration-seconds: 10
+      amplifier: 1
+
+  # ── MIRROR ───────────────────────────────────
+  mirror:
+    craft-limit: 1
+    passive:
+      copy-chance: 0.05  # 5% chance to copy enemy positive effects on hit
+    ability1:
+      cooldown-seconds: 120
+      full-reflect-duration-seconds: 10
+      reflect-percent: 0.25  # 25% of damage reflected back
+    ability2:
+      cooldown-seconds: 30
+      swap-radius: 5.0
+
+  # ── JUNGLE ───────────────────────────────────
+  jungle:
+    craft-limit: 1
+    passive:
+      resistance-amplifier: 0
+    ability1:
+      cooldown-seconds: 50
+      range: 20.0
+      pull-speed: 1.5            # blocks per tick toward grapple target
+      timeout-seconds: 7         # cancel grapple if not arrived in this many seconds
+    ability2:
+      cooldown-seconds: 30
+      range: 10.0
+      poison-duration-seconds: 5
+      poison-amplifier: 0
+      instant-damage-amplifier: 0
+
+  # ── MIDAS ────────────────────────────────────
+  midas:
+    craft-limit: 1
+    passive:
+      gold-ingot-amount: 1
+    ability1:
+      cooldown-seconds: 90
+      range: 10.0
+      enemy-protection-decrease: 2     # downgrade enemy protection by 2 levels
+      enemy-duration-seconds: 3
+      trusted-protection-increase: 1   # upgrade trusted ally protection by 1 level
+      trusted-duration-seconds: 3
+    ability2:
+      cooldown-seconds: 60
+      radius: 5.0
+      duration-seconds: 5
+
+  # ── TOXIC ────────────────────────────────────
+  toxic:
+    craft-limit: 1
+    passive:
+      poison-immunity: true
+    ability1:
+      cooldown-seconds: 50
+      radius: 5.0
+      cloud-duration-seconds: 5
+      poison-amplifier: 2
+    ability2:
+      cooldown-seconds: 90
+      poison-duration-seconds: 3
+      poison-amplifier: 4
+
+  # ── ARACHNID ─────────────────────────────────
+  arachnid:
+    craft-limit: 1
+    passive:
+      cobweb-speed: 0.35       # speed through cobwebs (vanilla = ~0.05)
+      wallclimb-y-velocity: 0.25
+    ability1:
+      cooldown-seconds: 30
+      duration-seconds: 2
+      strength-duration-seconds: 2
+      strength-amplifier: 0
+      paralyze-amplifier: 6
+
+  # ── VAMPIRE ──────────────────────────────────
+  vampire:
+    craft-limit: 1
+    passive:
+      max-health-bonus: 4.0
+      bleed-chance: 0.05
+      bleed-duration-seconds: 6
+      bleed-damage-per-tick: 1.0
+      backstab-multiplier: 1.5
+      backstab-angle-threshold: -0.3
+    ability1:
+      cooldown-seconds: 30
+      duration-seconds: 8
+      heal-percent: 0.25
+
+  # ── GRAVITY ──────────────────────────────────
+  gravity:
+    craft-limit: 1
+    passive:
+      min-fall-blocks: 6.0
+      shockwave-radius: 5.0
+      damage-per-block: 0.5
+      max-damage: 10.0
+    ability1:
+      cooldown-seconds: 90
+      pull-radius: 10.0
+      pull-damage: 6.0
+      fling-y: 1.5
+      collapse-delay-seconds: 1.5
+    ability2:
+      cooldown-seconds: 60
+      radius: 6.0
+      duration-seconds: 5
+      levitation-amplifier: 9
+
+  # ── EARTH ────────────────────────────────────
+  earth:
+    craft-limit: 1
+    passive:
+      haste-amplifier: 1
+    ability1:
+      cooldown-seconds: 30
+      width: 4
+      height: 3
+      material: STONE
+      duration-seconds: 10
+    ability2:
+      cooldown-seconds: 60
+      boulder-damage: 8.0
+      radius: 4.0
+
+  # ── TITAN ────────────────────────────────────
+  titan:
+    craft-limit: 1
+    passive:
+      resistance-amplifier: 0
+    ability1:
+      cooldown-seconds: 70
+      grow-scale: 2.5
+      grow-duration-seconds: 5
+    ability2:
+      cooldown-seconds: 70
+      duration-seconds: 5
+      scale: 0.4
+      speed-amplifier: 2
+
+  # ── GUARDIAN ─────────────────────────────────
+  guardian:
+    craft-limit: 1
+    passive:
+      threshold-hearts: 10.0
+      bonus-per-heart: 0.10
+      one-heart-multiplier: 2.0
+    ability1:
+      cooldown-seconds: 60
+      beam-damage-per-tick: 1.0
+      knockback: 0.5
+      duration-seconds: 8
+    ability2:
+      cooldown-seconds: 40
+      radius: 5.0
+      duration-seconds: 10
+      mining-fatigue-amplifier: 1
+
+  # ── GHOST ────────────────────────────────────
+  ghost:
+    craft-limit: 1
+    passive:
+      dodge-chance: 0.10
+    ability1:
+      cooldown-seconds: 30
+      dash-blocks: 10.0
+    ability2:
+      cooldown-seconds: 40
+      flight-duration-seconds: 8
+
+  # ── CHANCE ───────────────────────────────────
+  chance:
+    craft-limit: 1
+    passive:
+      interval-seconds: 30
+      effect-duration-seconds: 10
+      effect-amplifier: 1
+    ability1:
+      cooldown-seconds: 50
+      duration-seconds: 20
+
+  # ── STORM ────────────────────────────────────
+  storm:
+    craft-limit: 1
+    passive:
+      speed-amplifier: 0
+      lightning-chance-on-hit: 0.05
+      lightning-damage: 4.0
+    ability1:
+      cooldown-seconds: 30
+      damage: 6.0
+      range: 30.0
+    ability2:
+      cooldown-seconds: 60
+      damage: 4.0
+      radius: 5.0

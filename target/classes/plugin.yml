@@ -1,0 +1,33 @@
+name: DaggerSMP
+version: '2.2.0'
+main: com.daggersmp.DaggerSMP
+api-version: '1.21'
+description: Custom dagger abilities plugin
+authors: [DaggerSMP]
+commands:
+  dagger:
+    description: Dagger commands (give, list, togglecontrols, recipe, cooldown, reload)
+    usage: /dagger <give|list|togglecontrols|recipe|cooldown|reload> [args]
+  trust:
+    description: Trust a player so your dagger passives won't hurt them
+    usage: /trust <player>
+    permission: daggersmp.use
+  untrust:
+    description: Remove trust from a player
+    usage: /untrust <player>
+    permission: daggersmp.use
+  ability1:
+    description: Activate Ability 1 of your held dagger
+    usage: /ability1
+    permission: daggersmp.use
+  ability2:
+    description: Activate Ability 2 of your held dagger
+    usage: /ability2
+    permission: daggersmp.use
+permissions:
+  daggersmp.admin:
+    description: Access to admin dagger commands (give, cooldown, reload)
+    default: op
+  daggersmp.use:
+    description: Ability to use daggers
+    default: true
