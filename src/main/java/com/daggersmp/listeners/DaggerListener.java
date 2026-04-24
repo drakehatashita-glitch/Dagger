@@ -345,14 +345,9 @@ implements Listener {
         Player p = (Player)entity;
         AbilityManager am = this.plugin.getAbilityManager();
         if (e.getCause() == EntityDamageEvent.DamageCause.FALL) {
-            if (am.hasDaggerAnywhere(p, DaggerType.WIND) && this.plugin.getConfig().getBoolean("daggers.wind.passive.no-fall-damage", true)) {
-                e.setCancelled(true);
-                return;
-            }
-            if (am.isWindFallImmune(p.getUniqueId())) {
-                e.setCancelled(true);
-                return;
-            }
+            // GRAVITY check FIRST — if a player carries both Gravity and Wind, Gravity's shockwave passive
+            // takes priority over Wind's silent no-fall. Otherwise Wind would short-circuit and the
+            // explosion would never fire.
             if (am.hasDaggerAnywhere(p, DaggerType.GRAVITY)) {
                 double fallDist = (double) p.getFallDistance();
                 double minFall = this.plugin.getConfig().getDouble("daggers.gravity.passive.min-fall-blocks", 10.0);
@@ -369,19 +364,45 @@ implements Listener {
                     double maxPower = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-max", 6.0);
                     float power = (float) Math.min(maxPower, basePower + (fallDist - minFall) * powerPerBlock);
                     boolean breakBlocks = this.plugin.getConfig().getBoolean("daggers.gravity.passive.explosion-break-blocks", false);
-                    impact.getWorld().createExplosion(impact, power, false, breakBlocks, p);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 3, 0.6, 0.2, 0.6, 0.0);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 40, radius2 * 0.3, 0.2, radius2 * 0.3, 0.0);
-                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.6f, 0.85f);
+                    // Try the real explosion first (handles vanilla physics, knockback, optional block damage).
+                    try {
+                        impact.getWorld().createExplosion(impact, power, false, breakBlocks, p);
+                    } catch (Throwable ignored) {
+                        // If some other plugin / world setting blocks createExplosion, fall through to manual effects.
+                    }
+                    // ALWAYS play the visual + audio explosion ourselves — guarantees the player sees the boom
+                    // even if createExplosion was silently dropped (worldguard, claim plugins, etc.).
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 8, 0.6, 0.2, 0.6, 0.0);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 60, radius2 * 0.5, 0.2, radius2 * 0.5, 0.0);
+                    impact.getWorld().spawnParticle(Particle.LARGE_SMOKE, impact, 40, radius2 * 0.4, 0.3, radius2 * 0.4, 0.05);
+                    impact.getWorld().spawnParticle(Particle.CLOUD, impact, 50, radius2 * 0.6, 0.1, radius2 * 0.6, 0.1);
+                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.85f);
+                    impact.getWorld().playSound(impact, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.4f, 0.7f);
+                    // ALWAYS apply our configured shockwave damage + knockback — does not rely on createExplosion's
+                    // damage path (which gets filtered by claim plugins, mob immunity, etc.).
                     for (Entity en : p.getNearbyEntities(radius2, radius2, radius2)) {
-                        LivingEntity le;
-                        if (!(en instanceof LivingEntity) || (le = (LivingEntity)en) == p || am.isTrustedEntity(p, en)) continue;
-                        le.damage(dmg, (Entity)p);
+                        if (!(en instanceof LivingEntity)) continue;
+                        LivingEntity le = (LivingEntity) en;
+                        if (le == p || am.isTrustedEntity(p, en)) continue;
+                        if (le instanceof org.bukkit.entity.ArmorStand) continue;
+                        if (le.isDead() || !le.isValid()) continue;
+                        le.setNoDamageTicks(0);
+                        le.damage(dmg, (Entity) p);
                         org.bukkit.util.Vector kb = le.getLocation().toVector().subtract(impact.toVector()).normalize().multiply(0.8).setY(0.45);
                         le.setVelocity(kb);
                     }
                 }
-                // Wearer takes ZERO fall damage with the Gravity dagger.
+                // Wearer takes ZERO fall damage with the Gravity dagger (whether or not the explosion fired).
+                p.setFallDistance(0.0f);
+                e.setCancelled(true);
+                e.setDamage(0.0);
+                return;
+            }
+            if (am.hasDaggerAnywhere(p, DaggerType.WIND) && this.plugin.getConfig().getBoolean("daggers.wind.passive.no-fall-damage", true)) {
+                e.setCancelled(true);
+                return;
+            }
+            if (am.isWindFallImmune(p.getUniqueId())) {
                 e.setCancelled(true);
                 return;
             }

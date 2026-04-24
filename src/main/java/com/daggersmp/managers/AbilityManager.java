@@ -1827,22 +1827,30 @@ public class AbilityManager {
                         }
                     }
                 }
-                strike.getWorld().strikeLightningEffect(strike);
+                // REAL lightning (not Effect) — the LightningStrike entity itself deals vanilla 5.0 damage
+                // to everything in its small hit radius, regardless of any other plugin/permission interference.
+                // This guarantees mobs AND players in the strike zone take damage.
+                org.bukkit.entity.LightningStrike bolt = strike.getWorld().strikeLightning(strike);
+                if (bolt != null) {
+                    bolt.setSilent(false);
+                }
                 strike.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, strike, 40, 0.6, 0.4, 0.6, 0.2);
                 strike.getWorld().spawnParticle(Particle.FLASH, strike, 1, 0.0, 0.0, 0.0, 0.0);
-                // AoE damage around the bolt landing point — catches the picked target AND any nearby mob/player.
-                // Done last so the lightning visual is registered even if damage code throws.
+                // Additional configured damage layered on top of vanilla lightning damage, so the configured
+                // `damage` value is honored AND mobs that the lightning's hit radius missed still take a hit.
                 for (Entity e : strike.getWorld().getNearbyEntities(strike, aoeRadius, aoeRadius + 1.5, aoeRadius)) {
                     if (!(e instanceof LivingEntity)) continue;
                     LivingEntity le = (LivingEntity) e;
                     if (le == p) continue;
                     if (AbilityManager.this.isTrustedEntity(p, e)) continue;
                     if (le instanceof org.bukkit.entity.ArmorStand) continue;
-                    if (le.isInvulnerable() || le.isDead() || !le.isValid()) continue;
+                    if (le.isDead() || !le.isValid()) continue;
                     if (le.hasMetadata("dagger_mafia_owner")) {
                         String owner = ((MetadataValue) le.getMetadata("dagger_mafia_owner").get(0)).asString();
                         if (owner.equals(p.getUniqueId().toString())) continue;
                     }
+                    // Reset i-frames so our extra damage applies on top of the vanilla lightning damage that
+                    // just consumed the entity's invulnerability ticks.
                     le.setNoDamageTicks(0);
                     le.damage(dmg, (Entity) p);
                 }
