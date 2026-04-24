@@ -74,6 +74,7 @@ import org.bukkit.entity.Boat;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityKnockbackEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -345,59 +346,6 @@ implements Listener {
         Player p = (Player)entity;
         AbilityManager am = this.plugin.getAbilityManager();
         if (e.getCause() == EntityDamageEvent.DamageCause.FALL) {
-            // GRAVITY check FIRST — if a player carries both Gravity and Wind, Gravity's shockwave passive
-            // takes priority over Wind's silent no-fall. Otherwise Wind would short-circuit and the
-            // explosion would never fire.
-            if (am.hasDaggerAnywhere(p, DaggerType.GRAVITY)) {
-                double fallDist = (double) p.getFallDistance();
-                double minFall = this.plugin.getConfig().getDouble("daggers.gravity.passive.min-fall-blocks", 10.0);
-                if (fallDist >= minFall) {
-                    double radius2 = this.plugin.getConfig().getDouble("daggers.gravity.passive.shockwave-radius", 5.0);
-                    // 0.20 hearts = 0.4 damage per block fallen, capped at 5 hearts (10.0 damage).
-                    double dmgPerBlock = this.plugin.getConfig().getDouble("daggers.gravity.passive.damage-per-block", 0.4);
-                    double maxDmg = this.plugin.getConfig().getDouble("daggers.gravity.passive.max-damage", 10.0);
-                    double dmg = Math.min(maxDmg, fallDist * dmgPerBlock);
-                    Location impact = p.getLocation();
-                    // Explosion grows with fall distance: bigger fall -> bigger boom.
-                    double basePower = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-base", 1.5);
-                    double powerPerBlock = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-per-block", 0.08);
-                    double maxPower = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-max", 6.0);
-                    float power = (float) Math.min(maxPower, basePower + (fallDist - minFall) * powerPerBlock);
-                    boolean breakBlocks = this.plugin.getConfig().getBoolean("daggers.gravity.passive.explosion-break-blocks", false);
-                    // Try the real explosion first (handles vanilla physics, knockback, optional block damage).
-                    try {
-                        impact.getWorld().createExplosion(impact, power, false, breakBlocks, p);
-                    } catch (Throwable ignored) {
-                        // If some other plugin / world setting blocks createExplosion, fall through to manual effects.
-                    }
-                    // ALWAYS play the visual + audio explosion ourselves — guarantees the player sees the boom
-                    // even if createExplosion was silently dropped (worldguard, claim plugins, etc.).
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 8, 0.6, 0.2, 0.6, 0.0);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 60, radius2 * 0.5, 0.2, radius2 * 0.5, 0.0);
-                    impact.getWorld().spawnParticle(Particle.LARGE_SMOKE, impact, 40, radius2 * 0.4, 0.3, radius2 * 0.4, 0.05);
-                    impact.getWorld().spawnParticle(Particle.CLOUD, impact, 50, radius2 * 0.6, 0.1, radius2 * 0.6, 0.1);
-                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.85f);
-                    impact.getWorld().playSound(impact, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.4f, 0.7f);
-                    // ALWAYS apply our configured shockwave damage + knockback — does not rely on createExplosion's
-                    // damage path (which gets filtered by claim plugins, mob immunity, etc.).
-                    for (Entity en : p.getNearbyEntities(radius2, radius2, radius2)) {
-                        if (!(en instanceof LivingEntity)) continue;
-                        LivingEntity le = (LivingEntity) en;
-                        if (le == p || am.isTrustedEntity(p, en)) continue;
-                        if (le instanceof org.bukkit.entity.ArmorStand) continue;
-                        if (le.isDead() || !le.isValid()) continue;
-                        le.setNoDamageTicks(0);
-                        le.damage(dmg, (Entity) p);
-                        org.bukkit.util.Vector kb = le.getLocation().toVector().subtract(impact.toVector()).normalize().multiply(0.8).setY(0.45);
-                        le.setVelocity(kb);
-                    }
-                }
-                // Wearer takes ZERO fall damage with the Gravity dagger (whether or not the explosion fired).
-                p.setFallDistance(0.0f);
-                e.setCancelled(true);
-                e.setDamage(0.0);
-                return;
-            }
             if (am.hasDaggerAnywhere(p, DaggerType.WIND) && this.plugin.getConfig().getBoolean("daggers.wind.passive.no-fall-damage", true)) {
                 e.setCancelled(true);
                 return;
@@ -657,53 +605,59 @@ implements Listener {
         }
     }
 
+    /**
+     * Gravity passive: take 50% reduced knockback (configurable) while a Gravity dagger is anywhere
+     * in the player's inventory. Listens to vanilla Bukkit's EntityKnockbackEvent so it covers
+     * knockback from melee hits, projectiles, explosions, and other sources uniformly.
+     */
+    @EventHandler(ignoreCancelled=true)
+    public void onGravityKnockback(EntityKnockbackEvent e) {
+        if (!(e.getEntity() instanceof Player)) {
+            return;
+        }
+        Player p = (Player) e.getEntity();
+        if (!this.plugin.getAbilityManager().hasDaggerAnywhere(p, DaggerType.GRAVITY)) {
+            return;
+        }
+        double pct = this.plugin.getConfig().getDouble("daggers.gravity.passive.knockback-reduction", 0.5);
+        if (pct <= 0.0) {
+            return;
+        }
+        if (pct > 1.0) {
+            pct = 1.0;
+        }
+        org.bukkit.util.Vector kb = e.getFinalKnockback();
+        if (kb == null) {
+            return;
+        }
+        e.setFinalKnockback(kb.multiply(1.0 - pct));
+    }
+
+    /**
+     * Arachnid passive (web destroyer): instantly break any cobweb the player walks into / through.
+     * Replaces the old "walk through cobwebs at vanilla speed" behavior. Drops the cobweb naturally
+     * (uses world.breakNaturally so silk-touch logic and string drops apply).
+     */
     @EventHandler(ignoreCancelled=true)
     public void onArachnidMove(PlayerMoveEvent e) {
         Player p = e.getPlayer();
-        AbilityManager am = this.plugin.getAbilityManager();
-        if (!am.hasArachnidHeld(p)) {
+        if (!this.plugin.getAbilityManager().hasArachnidHeld(p)) {
             return;
         }
-        if (!am.isInCobweb(p)) {
-            return;
-        }
-        Location from = e.getFrom();
         Location to = e.getTo();
         if (to == null) {
             return;
         }
-        double dx = to.getX() - from.getX();
-        double dz = to.getZ() - from.getZ();
-        double curH = Math.sqrt(dx * dx + dz * dz);
-        // Target walking speed (~0.215 blocks/tick). When the player is trying to move
-        // even a tiny amount, scale them up to vanilla walking speed so cobwebs feel
-        // walkable instead of slow / glitchy.
-        double walkSpeed = this.plugin.getConfig().getDouble("daggers.arachnid.passive.cobweb-walk-speed", 0.215);
-        double maxScale = this.plugin.getConfig().getDouble("daggers.arachnid.passive.cobweb-multiplier", 30.0);
-        if (curH < 1.0E-4) {
-            return;
-        }
-        double scale = walkSpeed / curH;
-        if (scale < 1.0) scale = 1.0;
-        if (scale > maxScale) scale = maxScale;
-        double nx = from.getX() + dx * scale;
-        double nz = from.getZ() + dz * scale;
-        Location newTo = new Location(to.getWorld(), nx, to.getY(), nz, to.getYaw(), to.getPitch());
-        if (newTo.getBlock().getType().isSolid()) {
-            return;
-        }
-        Location head = newTo.clone().add(0.0, 1.0, 0.0);
-        if (head.getBlock().getType().isSolid() && head.getBlock().getType() != Material.COBWEB) {
-            return;
-        }
-        e.setTo(newTo);
-        // Keep momentum across ticks so the player keeps moving instead of being re-clamped to ~0.05/t.
-        org.bukkit.util.Vector v = p.getVelocity();
-        double vh = Math.sqrt(v.getX() * v.getX() + v.getZ() * v.getZ());
-        if (vh < walkSpeed) {
-            double mul = (vh < 1.0E-4) ? walkSpeed : (walkSpeed / vh);
-            p.setVelocity(new org.bukkit.util.Vector(v.getX() * mul, Math.max(v.getY(), -0.05), v.getZ() * mul));
-            p.setFallDistance(0.0f);
+        // Check the two block-spaces the player's bounding box occupies (feet + head)
+        // and a small ring of adjacent blocks in case they brush a web while sprinting.
+        Location feet = to.getBlock().getLocation();
+        int[][] offsets = new int[][] { {0,0,0}, {0,1,0}, {1,0,0}, {-1,0,0}, {0,0,1}, {0,0,-1}, {1,1,0}, {-1,1,0}, {0,1,1}, {0,1,-1} };
+        for (int[] o : offsets) {
+            org.bukkit.block.Block b = feet.getWorld().getBlockAt(feet.getBlockX() + o[0], feet.getBlockY() + o[1], feet.getBlockZ() + o[2]);
+            if (b.getType() == Material.COBWEB) {
+                b.breakNaturally();
+                b.getWorld().spawnParticle(Particle.SWEEP_ATTACK, b.getLocation().add(0.5, 0.5, 0.5), 1, 0.0, 0.0, 0.0, 0.0);
+            }
         }
     }
 

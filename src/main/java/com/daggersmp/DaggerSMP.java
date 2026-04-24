@@ -90,28 +90,24 @@ extends JavaPlugin {
     private void migrateConfig() {
         org.bukkit.configuration.file.FileConfiguration cfg = this.getConfig();
         int currentVersion = cfg.getInt("config-version", 0);
-        int targetVersion = 3;
+        int targetVersion = 4;
         if (currentVersion >= targetVersion) {
             return;
         }
-        // v3 — rewritten gravity passive, earth A1 obsidian, wind A1 dash 20, mirror A1 reflect 50%, storm A2 hits.
-        cfg.set("daggers.gravity.passive.min-fall-blocks", 10.0);
-        cfg.set("daggers.gravity.passive.shockwave-radius", 5.0);
-        cfg.set("daggers.gravity.passive.damage-per-block", 0.4);
-        cfg.set("daggers.gravity.passive.max-damage", 10.0);
-        cfg.set("daggers.gravity.passive.explosion-power-base", 1.5);
-        cfg.set("daggers.gravity.passive.explosion-power-per-block", 0.08);
-        cfg.set("daggers.gravity.passive.explosion-power-max", 6.0);
-        cfg.set("daggers.gravity.passive.explosion-break-blocks", false);
+        // v3 — rewritten earth A1 obsidian, wind A1 dash 20, mirror A1 reflect 50%, storm A2 hits.
         cfg.set("daggers.earth.ability1.material", "OBSIDIAN");
         cfg.set("daggers.wind.ability1.dash-blocks", 20.0);
         cfg.set("daggers.mirror.ability1.reflect-percent", 0.5);
         cfg.set("daggers.storm.ability2.damage", 4.0);
         cfg.set("daggers.storm.ability2.radius", 5.0);
         cfg.set("daggers.storm.ability2.aoe-radius", 3.5);
+        // v4 — gravity passive switched from fall-shockwave to 50% knockback reduction;
+        //      arachnid wall-climb slowed; arachnid cobweb-walk replaced with cobweb-shred.
+        cfg.set("daggers.gravity.passive.knockback-reduction", 0.5);
+        cfg.set("daggers.arachnid.passive.wallclimb-y-velocity", 0.22);
         cfg.set("config-version", targetVersion);
         this.saveConfig();
-        this.getLogger().info("DaggerSMP config migrated to v" + targetVersion + " (gravity/earth/wind/mirror/storm rewrites).");
+        this.getLogger().info("DaggerSMP config migrated to v" + targetVersion + " (gravity knockback reduction, slower wall-climb, web shredder).");
     }
 
     public void onDisable() {

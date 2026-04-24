@@ -133,25 +133,33 @@ public class AbilityManager {
                 }
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 20L);
+        // Cobweb destroyer: per-tick safety net that breaks any cobweb the player is currently
+        // standing in, in case PlayerMoveEvent didn't fire (e.g. webs spawned around them).
         new BukkitRunnable(){
 
             public void run() {
                 for (Player p : AbilityManager.this.plugin.getServer().getOnlinePlayers()) {
                     if (!AbilityManager.this.hasArachnidHeld(p)) continue;
-                    if (!AbilityManager.this.isInCobweb(p)) continue;
-                    Vector cur = p.getVelocity();
-                    p.setVelocity(new Vector(cur.getX(), Math.max(cur.getY(), -0.05), cur.getZ()));
-                    p.setFallDistance(0.0f);
+                    Location feet = p.getLocation().getBlock().getLocation();
+                    int[][] offsets = new int[][] { {0,0,0}, {0,1,0} };
+                    for (int[] o : offsets) {
+                        org.bukkit.block.Block b = feet.getWorld().getBlockAt(feet.getBlockX() + o[0], feet.getBlockY() + o[1], feet.getBlockZ() + o[2]);
+                        if (b.getType() == Material.COBWEB) {
+                            b.breakNaturally();
+                        }
+                    }
                 }
             }
-        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
+        }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
         new BukkitRunnable(){
 
             public void run() {
                 for (Player p : AbilityManager.this.plugin.getServer().getOnlinePlayers()) {
                     if (!AbilityManager.this.hasArachnidHeld(p) || !AbilityManager.this.isAgainstWall(p.getLocation())) continue;
                     if (p.isSneaking() || (p.getVelocity().getY() > 0.05 && !p.isOnGround())) {
-                        double y = AbilityManager.this.cfgD("daggers.arachnid.passive.wallclimb-y-velocity", 0.42);
+                        // Slower wall-climb (~0.22 instead of vanilla-jump 0.42) so it feels like climbing,
+                        // not jumping straight up.
+                        double y = AbilityManager.this.cfgD("daggers.arachnid.passive.wallclimb-y-velocity", 0.22);
                         Vector v = p.getVelocity();
                         p.setVelocity(new Vector(v.getX() * 0.2, y, v.getZ() * 0.2));
                         p.setFallDistance(0.0f);
@@ -1794,37 +1802,18 @@ public class AbilityManager {
                 }
                 // Re-anchor the storm to the player's CURRENT position so it follows them.
                 Location center = p.isOnline() ? p.getLocation() : anchor;
-                // Pick a strike location: prefer a random valid target so the bolt visibly lands on something hostile.
-                java.util.List<LivingEntity> candidates = new java.util.ArrayList<LivingEntity>();
-                for (Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
-                    if (!(e instanceof LivingEntity)) continue;
-                    LivingEntity le = (LivingEntity) e;
-                    if (le == p) continue;
-                    if (AbilityManager.this.isTrustedEntity(p, e)) continue;
-                    if (le instanceof org.bukkit.entity.ArmorStand) continue;
-                    if (le.isInvulnerable() || le.isDead() || !le.isValid()) continue;
-                    // Don't pick the player's own Mafia minions as a strike target.
-                    if (le.hasMetadata("dagger_mafia_owner")) {
-                        String owner = ((MetadataValue) le.getMetadata("dagger_mafia_owner").get(0)).asString();
-                        if (owner.equals(p.getUniqueId().toString())) continue;
-                    }
-                    candidates.add(le);
-                }
-                Location strike;
-                if (!candidates.isEmpty()) {
-                    LivingEntity picked = candidates.get(AbilityManager.this.random.nextInt(candidates.size()));
-                    strike = picked.getLocation().clone();
-                } else {
-                    double angle = AbilityManager.this.random.nextDouble() * Math.PI * 2.0;
-                    double dist = AbilityManager.this.random.nextDouble() * radius;
-                    strike = center.clone().add(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
-                    int sy = strike.getBlockY();
-                    for (int y = sy + 6; y >= sy - 8; --y) {
-                        Location probe = new Location(strike.getWorld(), strike.getX(), y, strike.getZ());
-                        if (!probe.getBlock().isPassable()) {
-                            strike = new Location(strike.getWorld(), strike.getX(), y + 1, strike.getZ());
-                            break;
-                        }
+                // Always pick a fully RANDOM spot in a circle around the player — bolts do NOT lock onto
+                // entities. If a bolt happens to land near a mob/player, the proximity check below damages it.
+                double angle = AbilityManager.this.random.nextDouble() * Math.PI * 2.0;
+                double dist = AbilityManager.this.random.nextDouble() * radius;
+                Location strike = center.clone().add(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+                // Snap the strike to the ground surface so the lightning lands on something visible.
+                int sy = strike.getBlockY();
+                for (int y = sy + 6; y >= sy - 8; --y) {
+                    Location probe = new Location(strike.getWorld(), strike.getX(), y, strike.getZ());
+                    if (!probe.getBlock().isPassable()) {
+                        strike = new Location(strike.getWorld(), strike.getX(), y + 1, strike.getZ());
+                        break;
                     }
                 }
                 // REAL lightning (not Effect) — the LightningStrike entity itself deals vanilla 5.0 damage

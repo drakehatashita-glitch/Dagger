@@ -307,7 +307,7 @@ public enum DaggerType {
             }
             case 16: {
                 int dur = this.ci(c, "ability1.duration-seconds", 2);
-                this.addPassive(lore, "Walk through cobwebs freely & climb walls");
+                this.addPassive(lore, "Climb walls (slow) & shred any cobweb you touch");
                 lore.add("");
                 this.addAbility(lore, c, 1, "The next attack you do paralyzes enemies for " + dur + " seconds");
                 break;
@@ -326,7 +326,7 @@ public enum DaggerType {
             case 18: {
                 double pdmg = this.cd(c, "ability1.pull-damage", 6.0);
                 int dur = this.ci(c, "ability2.duration-seconds", 5);
-                this.addPassive(lore, "Immune to fall damage. Falls of 10+ blocks erupt in a shockwave (bigger fall = bigger boom, up to 5 hearts AoE)");
+                this.addPassive(lore, "Take 50% reduced knockback while in your inventory");
                 lore.add("");
                 this.addAbility(lore, c, 1, "Create a black hole that pulls entities \u2014 " + pdmg + " HP");
                 this.addAbility(lore, c, 2, "Levitate nearby enemies for " + dur + " seconds");

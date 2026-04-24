@@ -1,6 +1,6 @@
 # ─── GLOBAL SETTINGS ─────────────────────────────────────────────
 # config-version is auto-managed by the plugin's migration system. Do not edit by hand.
-config-version: 3
+config-version: 4
 settings:
   broadcast-craft: true
 
@@ -263,8 +263,8 @@ daggers:
     passive:
       cobweb-speed: 0.35           # legacy; kept for backwards compatibility
       cobweb-multiplier: 30.0      # max scale we will apply to a sub-walking-speed move delta inside cobwebs
-      cobweb-walk-speed: 0.215     # target horizontal speed (blocks/tick) inside a cobweb -- vanilla walking
-      wallclimb-y-velocity: 0.42
+      cobweb-walk-speed: 0.215     # legacy; cobwebs are now broken on touch instead of walked through
+      wallclimb-y-velocity: 0.22   # how fast you climb walls (vanilla jump = 0.42, lower = slower climb)
     ability1:
       cooldown-seconds: 30
       duration-seconds: 2
@@ -291,17 +291,9 @@ daggers:
   gravity:
     craft-limit: 1
     passive:
-      # Player takes ZERO fall damage; from 10+ blocks, an explosion erupts on landing.
-      min-fall-blocks: 10.0
-      shockwave-radius: 5.0
-      # 0.20 hearts per block fallen, capped at 5 hearts (10.0 damage).
-      damage-per-block: 0.4
-      max-damage: 10.0
-      # Explosion gets bigger the higher you fall from.
-      explosion-power-base: 1.5
-      explosion-power-per-block: 0.08
-      explosion-power-max: 6.0
-      explosion-break-blocks: false
+      # Player takes a percentage less knockback from all sources while a Gravity dagger is in inventory.
+      # 0.5 = 50% reduction (a hit that would push you 1 block now pushes you 0.5).
+      knockback-reduction: 0.5
     ability1:
       cooldown-seconds: 90
       pull-radius: 10.0
