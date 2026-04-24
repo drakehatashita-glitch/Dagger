@@ -1,7 +1,6 @@
 {
   "pack": {
-    "pack_format": 81,
-    "supported_formats": {"min_inclusive": 46, "max_inclusive": 200},
-    "description": "§cDaggerSMP §7— 25 unique 3D daggers"
+    "pack_format": 47,
+    "description": "§cDaggerSMP §7— 25 3D daggers §8(weapon models from AltarSMP by Gwamba & Quacker)"
   }
 }
