@@ -245,3 +245,9 @@ id = "_k-l16xbpC70UUcdVxmEA"
 uri = "file://attached_assets/dagger_collection_v2.png"
 type = "image"
 title = "All 25 DaggerSMP daggers (5x5)"
+
+[[outputs]]
+id = "Ouh0OiXFRBe9gGrYwacGK"
+uri = "file://attached_assets/dagger_collection_v3.png"
+type = "image"
+title = "All 25 daggers w/ 80% blade opacity + edge glow"
