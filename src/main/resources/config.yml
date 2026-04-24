@@ -259,8 +259,9 @@ daggers:
   arachnid:
     craft-limit: 1
     passive:
-      cobweb-speed: 0.35       # legacy; kept for backwards compatibility
-      cobweb-multiplier: 5.0   # how much to scale the player's move delta inside cobwebs (cancels vanilla's ~0.2x slowdown)
+      cobweb-speed: 0.35           # legacy; kept for backwards compatibility
+      cobweb-multiplier: 30.0      # max scale we will apply to a sub-walking-speed move delta inside cobwebs
+      cobweb-walk-speed: 0.215     # target horizontal speed (blocks/tick) inside a cobweb -- vanilla walking
       wallclimb-y-velocity: 0.42
     ability1:
       cooldown-seconds: 30
@@ -345,8 +346,9 @@ daggers:
     ability1:
       cooldown-seconds: 60
       beam-damage-per-tick: 1.0
-      knockback: 0.5
+      knockback: 0.12             # gentle nudge -- vanilla guardian beam visual without the launch
       duration-seconds: 8
+      range: 30.0
     ability2:
       cooldown-seconds: 40
       radius: 5.0

@@ -81,6 +81,8 @@ public class AbilityManager {
     private final Map<UUID, Set<Entity>> mafiaVindicators = new HashMap<UUID, Set<Entity>>();
     private final Map<UUID, List<Block>> earthWalls = new HashMap<UUID, List<Block>>();
     private final Map<UUID, BukkitRunnable> guardianBeamTasks = new HashMap<UUID, BukkitRunnable>();
+    private final Map<UUID, UUID> beamGuardians = new HashMap<UUID, UUID>();
+    private final Map<UUID, UUID> beamAnchors = new HashMap<UUID, UUID>();
     private final Set<UUID> ghostFormActive = new HashSet<UUID>();
     private final Set<UUID> windFallDamageImmune = new HashSet<UUID>();
     private final Map<UUID, DaggerType> chanceActiveDagger = new HashMap<UUID, DaggerType>();
@@ -746,7 +748,7 @@ public class AbilityManager {
                     double dmg = AbilityManager.this.cfgD("daggers.wind.ability2.shockwave-damage", 6.0);
                     double radius = AbilityManager.this.cfgD("daggers.wind.ability2.shockwave-radius", 5.0);
                     Location loc = p.getLocation();
-                    loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 10, radius * 0.4, 0.5, radius * 0.4, 0.0);
+                    loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 30, radius * 0.4, 0.5, radius * 0.4, 0.0);
                     loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.5f);
                     for (Entity e : p.getNearbyEntities(radius, 3.0, radius)) {
                         LivingEntity le;
@@ -781,7 +783,7 @@ public class AbilityManager {
             if (tp.getHealth() >= before - 0.01) {
                 tp.setHealth(Math.max(0.0, before - dmg));
             }
-            tp.getWorld().spawnParticle(Particle.HEART, tp.getLocation().add(0.0, 1.5, 0.0), 5, 0.3, 0.3, 0.3, 0.0);
+            tp.getWorld().spawnParticle(Particle.HEART, tp.getLocation().add(0.0, 1.5, 0.0), 15, 0.3, 0.3, 0.3, 0.0);
             sources.put(tp.getUniqueId(), System.currentTimeMillis() + durMs);
             ++hits;
         }
@@ -932,7 +934,7 @@ public class AbilityManager {
             le.setFreezeTicks(dur + 60);
             anchors.put(le.getUniqueId(), le.getLocation().clone());
             frozen.add(le);
-            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 12, 0.3, 0.5, 0.3, 0.0);
+            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 36, 0.3, 0.5, 0.3, 0.0);
         }
         if (!frozen.isEmpty()) {
             new BukkitRunnable() {
@@ -953,7 +955,7 @@ public class AbilityManager {
                         }
                         le.setFreezeTicks(Math.max(le.getFreezeTicks(), 200));
                         if (t % 6 == 0) {
-                            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 3, 0.2, 0.4, 0.2, 0.0);
+                            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 9, 0.2, 0.4, 0.2, 0.0);
                         }
                     }
                 }
@@ -1047,13 +1049,13 @@ public class AbilityManager {
                 for (int i = 0; i < steps; i++) {
                     double a = (Math.PI * 2 * i) / steps;
                     Location pt = origin.clone().add(Math.cos(a) * r, 0.4 + Math.sin(t * 0.5) * 0.2, Math.sin(a) * r);
-                    pt.getWorld().spawnParticle(Particle.SPLASH, pt, 2, 0.05, 0.2, 0.05, 0.0);
-                    pt.getWorld().spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, (Object) new Particle.DustOptions(Color.fromRGB(80, 160, 255), 1.6f));
-                    if (i % 4 == 0) pt.getWorld().spawnParticle(Particle.BUBBLE_POP, pt, 1, 0.05, 0.1, 0.05, 0.0);
+                    pt.getWorld().spawnParticle(Particle.SPLASH, pt, 6, 0.05, 0.2, 0.05, 0.0);
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 5, 0.0, 0.0, 0.0, (Object) new Particle.DustOptions(Color.fromRGB(80, 160, 255), 1.6f));
+                    if (i % 4 == 0) pt.getWorld().spawnParticle(Particle.BUBBLE_POP, pt, 5, 0.05, 0.1, 0.05, 0.0);
                 }
                 Location front = origin.clone().add(forward.clone().multiply(r * 0.6)).add(0, 1.0, 0);
-                front.getWorld().spawnParticle(Particle.DRIPPING_WATER, front, 8, 0.6, 0.4, 0.6, 0.0);
-                front.getWorld().spawnParticle(Particle.FALLING_WATER, front, 12, 0.8, 0.5, 0.8, 0.0);
+                front.getWorld().spawnParticle(Particle.DRIPPING_WATER, front, 24, 0.6, 0.4, 0.6, 0.0);
+                front.getWorld().spawnParticle(Particle.FALLING_WATER, front, 36, 0.8, 0.5, 0.8, 0.0);
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
         p.sendMessage("\u00a79Wave released!");
@@ -1069,7 +1071,7 @@ public class AbilityManager {
             target = check.clone();
         }
         p.teleport(target);
-        p.getWorld().spawnParticle(Particle.PORTAL, p.getLocation(), 30, 0.5, 1.0, 0.5, 0.5);
+        p.getWorld().spawnParticle(Particle.PORTAL, p.getLocation(), 90, 0.5, 1.0, 0.5, 0.5);
         p.sendMessage("\u00a75Phased through!");
     }
 
@@ -1237,8 +1239,8 @@ public class AbilityManager {
                     dist += 0.5;
                     if (dist > range) { this.cancel(); return; }
                     Location pt = start.clone().add(dir.clone().multiply(dist));
-                    pt.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, pt, 1, 0.05, 0.05, 0.05, 0.0);
-                    pt.getWorld().spawnParticle(Particle.COMPOSTER, pt, 2, 0.1, 0.1, 0.1, 0.0);
+                    pt.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, pt, 5, 0.05, 0.05, 0.05, 0.0);
+                    pt.getWorld().spawnParticle(Particle.COMPOSTER, pt, 6, 0.1, 0.1, 0.1, 0.0);
                     if (!pt.getBlock().isPassable()) { this.cancel(); return; }
                     for (Entity e : pt.getWorld().getNearbyEntities(pt, 1.2, 1.2, 1.2)) {
                         if (e == p || !(e instanceof LivingEntity)) continue;
@@ -1254,7 +1256,7 @@ public class AbilityManager {
                         }
                         le.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_DAMAGE, 1, idAmp));
                         le.addPotionEffect(new PotionEffect(PotionEffectType.POISON, poisonDur, poisonAmp));
-                        le.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, le.getLocation().add(0.0, 1.0, 0.0), 15, 0.4, 0.5, 0.4, 0.0);
+                        le.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, le.getLocation().add(0.0, 1.0, 0.0), 45, 0.4, 0.5, 0.4, 0.0);
                         le.getWorld().playSound(le.getLocation(), Sound.BLOCK_VINE_BREAK, 1.0f, 1.0f);
                         p.sendMessage("\u00a72Vine pulled " + le.getName() + "!");
                         this.cancel();
@@ -1305,7 +1307,7 @@ public class AbilityManager {
             armor[i] = neu;
         }
         p.getInventory().setArmorContents(armor);
-        p.getWorld().spawnParticle(Particle.WAX_ON, p.getLocation().add(0.0, 1.0, 0.0), 30, 0.5, 1.0, 0.5, 0.0);
+        p.getWorld().spawnParticle(Particle.WAX_ON, p.getLocation().add(0.0, 1.0, 0.0), 90, 0.5, 1.0, 0.5, 0.0);
         p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1.2f, 1.0f);
     }
 
@@ -1338,14 +1340,14 @@ public class AbilityManager {
                     double dr = Math.sqrt(r.nextDouble()) * radius;
                     double y = (r.nextDouble() - 0.2) * 1.6;
                     Location pt = c.clone().add(Math.cos(ang) * dr, y, Math.sin(ang) * dr);
-                    pt.getWorld().spawnParticle(Particle.DUST, pt, 1, 0.05, 0.05, 0.05, (Object) new Particle.DustOptions(Color.fromRGB(80, 200, 60), 1.4f));
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 5, 0.05, 0.05, 0.05, (Object) new Particle.DustOptions(Color.fromRGB(80, 200, 60), 1.4f));
                 }
                 for (int i = 0; i < 6; i++) {
                     double ang = r.nextDouble() * Math.PI * 2;
                     double dr = r.nextDouble() * radius;
                     Location pt = c.clone().add(Math.cos(ang) * dr, r.nextDouble() * 1.2, Math.sin(ang) * dr);
-                    pt.getWorld().spawnParticle(Particle.SNEEZE, pt, 1, 0.0, 0.0, 0.0, 0.0);
-                    pt.getWorld().spawnParticle(Particle.ITEM_SLIME, pt, 1, 0.0, 0.0, 0.0, 0.0);
+                    pt.getWorld().spawnParticle(Particle.SNEEZE, pt, 5, 0.0, 0.0, 0.0, 0.0);
+                    pt.getWorld().spawnParticle(Particle.ITEM_SLIME, pt, 5, 0.0, 0.0, 0.0, 0.0);
                 }
                 if (this.t % 10 == 0) {
                     for (Entity e : p.getNearbyEntities(radius, 2.0, radius)) {
@@ -1390,7 +1392,7 @@ public class AbilityManager {
         double radius = this.cfgD("daggers.gravity.ability1.pull-radius", 10.0);
         final double dmg = this.cfgD("daggers.gravity.ability1.pull-damage", 6.0);
         final double flingY = this.cfgD("daggers.gravity.ability1.fling-y", 1.5);
-        p.getWorld().spawnParticle(Particle.PORTAL, loc, 80, 4.0, 4.0, 4.0, 0.5);
+        p.getWorld().spawnParticle(Particle.PORTAL, loc, 200, 4.0, 4.0, 4.0, 0.5);
         p.getWorld().playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 2.0f, 0.5f);
         final ArrayList<LivingEntity> hit = new ArrayList<LivingEntity>();
         for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
@@ -1502,17 +1504,17 @@ public class AbilityManager {
                 if (boulder.isValid()) {
                     Location bl = boulder.getLocation();
                     display.teleport(bl);
-                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.add(0, 0.5, 0), 8, boulderScale * 0.4, boulderScale * 0.4, boulderScale * 0.4, Material.COBBLESTONE.createBlockData());
-                    bl.getWorld().spawnParticle(Particle.LARGE_SMOKE, bl, 3, 0.3, 0.3, 0.3, 0.02);
+                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.add(0, 0.5, 0), 24, boulderScale * 0.4, boulderScale * 0.4, boulderScale * 0.4, Material.COBBLESTONE.createBlockData());
+                    bl.getWorld().spawnParticle(Particle.LARGE_SMOKE, bl, 9, 0.3, 0.3, 0.3, 0.02);
                 }
                 if (this.ticks > 200 || !boulder.isValid()) {
                     Location impact = boulder.isValid() ? boulder.getLocation() : spawnLoc;
                     boulder.remove();
                     display.remove();
                     impact.getWorld().createExplosion(impact, (float) Math.min(4.0, radius * 0.5), false, false, p);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 3, 1.0, 0.5, 1.0, 0.0);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 30, radius * 0.4, 0.5, radius * 0.4, 0.0);
-                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 80, radius * 0.5, 0.5, radius * 0.5, Material.COBBLESTONE.createBlockData());
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 9, 1.0, 0.5, 1.0, 0.0);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 90, radius * 0.4, 0.5, radius * 0.4, 0.0);
+                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 200, radius * 0.5, 0.5, radius * 0.5, Material.COBBLESTONE.createBlockData());
                     impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.7f);
                     for (Entity e : impact.getWorld().getNearbyEntities(impact, radius, radius, radius)) {
                         LivingEntity le;
@@ -1583,46 +1585,115 @@ public class AbilityManager {
             return;
         }
         final double dmgPerSec = this.cfgD("daggers.guardian.ability1.beam-damage-per-tick", 2.0);
-        final double knock = this.cfgD("daggers.guardian.ability1.knockback", 0.5);
+        final double knock = this.cfgD("daggers.guardian.ability1.knockback", 0.12);
         final long maxTicks = this.cfgTicks("daggers.guardian.ability1.duration-seconds", 8.0);
         final double maxRange = this.cfgD("daggers.guardian.ability1.range", 30.0);
         p.sendMessage("\u00a7bGuardian Beam fired!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 2.0f, 1.0f);
+
+        // Spawn an invisible vanilla Guardian so the client renders the real ocean-monument beam.
+        final org.bukkit.entity.Guardian beamGuardian = (org.bukkit.entity.Guardian) p.getWorld().spawnEntity(p.getEyeLocation(), org.bukkit.entity.EntityType.GUARDIAN);
+        beamGuardian.setInvisible(true);
+        beamGuardian.setSilent(true);
+        beamGuardian.setInvulnerable(true);
+        beamGuardian.setCollidable(false);
+        beamGuardian.setAI(false);
+        beamGuardian.setRemoveWhenFarAway(false);
+        beamGuardian.setPersistent(true);
+        try { beamGuardian.setNoPhysics(true); } catch (Throwable ignored) {}
+        // Prevent the guardian from being targetable by mobs/players.
+        try {
+            org.bukkit.attribute.AttributeInstance maxH = beamGuardian.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            if (maxH != null) { maxH.setBaseValue(1024.0); beamGuardian.setHealth(1024.0); }
+        } catch (Throwable ignored) {}
+
+        // Holder for an invisible armor stand we use as a beam endpoint when nothing is hit.
+        final org.bukkit.entity.ArmorStand[] anchorRef = new org.bukkit.entity.ArmorStand[1];
+        final org.bukkit.entity.ArmorStand anchor = (org.bukkit.entity.ArmorStand) p.getWorld().spawnEntity(p.getEyeLocation(), org.bukkit.entity.EntityType.ARMOR_STAND);
+        anchor.setInvisible(true);
+        anchor.setMarker(true);
+        anchor.setInvulnerable(true);
+        anchor.setSmall(true);
+        anchor.setGravity(false);
+        anchor.setSilent(true);
+        anchor.setCollidable(false);
+        anchor.setPersistent(true);
+        anchor.setRemoveWhenFarAway(false);
+        anchorRef[0] = anchor;
+
+        this.beamGuardians.put(uuid, beamGuardian.getUniqueId());
+        this.beamAnchors.put(uuid, anchor.getUniqueId());
+
         BukkitRunnable beam = new BukkitRunnable(){
             int ticks = 0;
             public void run() {
                 ++this.ticks;
-                if (!p.isOnline() || (long) this.ticks > maxTicks) {
+                if (!p.isOnline() || (long) this.ticks > maxTicks || !beamGuardian.isValid()) {
                     AbilityManager.this.endGuardianBeam(p);
                     this.cancel();
                     return;
                 }
-                Location start = p.getEyeLocation();
-                Vector dir = start.getDirection().normalize();
-                double traveled = 0.0;
-                Set<Entity> hitThisTick = new HashSet<Entity>();
-                for (double d = 0.0; d < maxRange; d += 0.4) {
-                    Location pt = start.clone().add(dir.clone().multiply(d));
-                    if (!pt.getBlock().isPassable()) break;
-                    pt.getWorld().spawnParticle(Particle.DUST, pt, 2, 0.05, 0.05, 0.05, (Object) new Particle.DustOptions(Color.fromRGB(120, 220, 255), 1.2f));
-                    if (ticks % 4 == 0) {
-                        pt.getWorld().spawnParticle(Particle.END_ROD, pt, 1, 0.0, 0.0, 0.0, 0.0);
-                    }
-                    traveled = d;
-                    if (ticks % 5 == 0) {
-                        for (Entity e : pt.getWorld().getNearbyEntities(pt, 0.7, 0.7, 0.7)) {
-                            if (e == p || hitThisTick.contains(e) || !(e instanceof LivingEntity)) continue;
-                            if (AbilityManager.this.isTrustedEntity(p, e)) continue;
-                            LivingEntity le = (LivingEntity) e;
-                            le.damage(dmgPerSec, (Entity) p);
-                            Vector kb = e.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(knock).setY(0.2);
-                            e.setVelocity(kb);
-                            hitThisTick.add(e);
+                Location eye = p.getEyeLocation();
+                Vector dir = eye.getDirection().normalize();
+
+                // Ray-trace for first valid LivingEntity in the look direction (skip the caster, the beam guardian, the anchor, and trusted entities).
+                final org.bukkit.entity.Entity ignoreA = beamGuardian;
+                final org.bukkit.entity.Entity ignoreB = anchorRef[0];
+                org.bukkit.util.RayTraceResult rt = p.getWorld().rayTrace(
+                        eye, dir, maxRange, org.bukkit.FluidCollisionMode.NEVER, true, 0.4,
+                        e -> e != p && e != ignoreA && e != ignoreB && (e instanceof LivingEntity) && !AbilityManager.this.isTrustedEntity(p, e)
+                );
+
+                LivingEntity targetLE = null;
+                Location endLoc;
+                if (rt != null && rt.getHitEntity() instanceof LivingEntity) {
+                    targetLE = (LivingEntity) rt.getHitEntity();
+                    endLoc = targetLE.getEyeLocation();
+                } else {
+                    double dist;
+                    if (rt != null) {
+                        dist = rt.getHitPosition().distance(eye.toVector());
+                    } else {
+                        // Stop at first non-passable block along the ray.
+                        dist = maxRange;
+                        for (double d = 0.0; d < maxRange; d += 0.5) {
+                            Location pt = eye.clone().add(dir.clone().multiply(d));
+                            if (!pt.getBlock().isPassable()) { dist = d; break; }
                         }
                     }
+                    endLoc = eye.clone().add(dir.clone().multiply(dist));
                 }
-                Location end = start.clone().add(dir.clone().multiply(traveled));
-                end.getWorld().spawnParticle(Particle.FLASH, end, 1, 0.0, 0.0, 0.0, 0.0);
+
+                // Position the invisible guardian just in front of the player so the beam visibly originates from them.
+                Location gLoc = eye.clone().add(dir.clone().multiply(0.6));
+                beamGuardian.teleport(gLoc);
+
+                // Update the beam target. The vanilla client will draw the purple/red beam to whichever LivingEntity is set as target.
+                if (targetLE != null) {
+                    beamGuardian.setTarget(targetLE);
+                } else {
+                    org.bukkit.entity.ArmorStand a = anchorRef[0];
+                    if (a == null || !a.isValid()) {
+                        a = (org.bukkit.entity.ArmorStand) p.getWorld().spawnEntity(endLoc, org.bukkit.entity.EntityType.ARMOR_STAND);
+                        a.setInvisible(true); a.setMarker(true); a.setInvulnerable(true);
+                        a.setSmall(true); a.setGravity(false); a.setSilent(true);
+                        a.setCollidable(false); a.setPersistent(true); a.setRemoveWhenFarAway(false);
+                        anchorRef[0] = a;
+                        AbilityManager.this.beamAnchors.put(p.getUniqueId(), a.getUniqueId());
+                    } else {
+                        a.teleport(endLoc);
+                    }
+                    beamGuardian.setTarget(a);
+                }
+
+                // Damage and gentle knockback every 5 ticks (matches vanilla guardian beam cadence).
+                if (targetLE != null && this.ticks % 5 == 0) {
+                    targetLE.damage(dmgPerSec, (Entity) p);
+                    Vector cur = targetLE.getVelocity();
+                    Vector kb = targetLE.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(knock);
+                    kb.setY(0.05);
+                    targetLE.setVelocity(cur.add(kb));
+                }
             }
         };
         beam.runTaskTimer((Plugin)this.plugin, 0L, 1L);
@@ -1638,6 +1709,16 @@ public class AbilityManager {
         BukkitRunnable t = this.guardianBeamTasks.remove(p.getUniqueId());
         if (t != null) {
             t.cancel();
+        }
+        UUID gid = this.beamGuardians.remove(p.getUniqueId());
+        if (gid != null) {
+            org.bukkit.entity.Entity ge = p.getServer().getEntity(gid);
+            if (ge != null && ge.isValid()) ge.remove();
+        }
+        UUID aid = this.beamAnchors.remove(p.getUniqueId());
+        if (aid != null) {
+            org.bukkit.entity.Entity ae = p.getServer().getEntity(aid);
+            if (ae != null && ae.isValid()) ae.remove();
         }
         if (p.isOnline()) {
             p.removeMetadata("dagger_guardian_beam_active", (Plugin)this.plugin);
@@ -1673,8 +1754,8 @@ public class AbilityManager {
                     this.cancel();
                     return;
                 }
-                p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1.0, 0), 4, 0.2, 0.2, 0.2, 0.0);
-                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 1.0, 0), 3, 0.2, 0.3, 0.2, (Object) new Particle.DustOptions(Color.WHITE, 1.2f));
+                p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1.0, 0), 12, 0.2, 0.2, 0.2, 0.0);
+                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 1.0, 0), 9, 0.2, 0.3, 0.2, (Object) new Particle.DustOptions(Color.WHITE, 1.2f));
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
@@ -1696,8 +1777,8 @@ public class AbilityManager {
                     this.cancel();
                     return;
                 }
-                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0.0, 1.0, 0.0), 6, 0.3, 0.5, 0.3, (Object)new Particle.DustOptions(Color.WHITE, 1.4f));
-                p.getWorld().spawnParticle(Particle.SOUL, p.getLocation().add(0.0, 0.5, 0.0), 1, 0.2, 0.2, 0.2, 0.0);
+                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0.0, 1.0, 0.0), 18, 0.3, 0.5, 0.3, (Object)new Particle.DustOptions(Color.WHITE, 1.4f));
+                p.getWorld().spawnParticle(Particle.SOUL, p.getLocation().add(0.0, 0.5, 0.0), 5, 0.2, 0.2, 0.2, 0.0);
             }
         };
         trail.runTaskTimer((Plugin)this.plugin, 0L, 3L);

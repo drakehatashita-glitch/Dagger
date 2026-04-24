@@ -622,10 +622,18 @@ implements Listener {
         }
         double dx = to.getX() - from.getX();
         double dz = to.getZ() - from.getZ();
-        if (dx * dx + dz * dz < 1.0E-6) {
+        double curH = Math.sqrt(dx * dx + dz * dz);
+        // Target walking speed (~0.215 blocks/tick). When the player is trying to move
+        // even a tiny amount, scale them up to vanilla walking speed so cobwebs feel
+        // walkable instead of slow / glitchy.
+        double walkSpeed = this.plugin.getConfig().getDouble("daggers.arachnid.passive.cobweb-walk-speed", 0.215);
+        double maxScale = this.plugin.getConfig().getDouble("daggers.arachnid.passive.cobweb-multiplier", 30.0);
+        if (curH < 1.0E-4) {
             return;
         }
-        double scale = this.plugin.getConfig().getDouble("daggers.arachnid.passive.cobweb-multiplier", 5.0);
+        double scale = walkSpeed / curH;
+        if (scale < 1.0) scale = 1.0;
+        if (scale > maxScale) scale = maxScale;
         double nx = from.getX() + dx * scale;
         double nz = from.getZ() + dz * scale;
         Location newTo = new Location(to.getWorld(), nx, to.getY(), nz, to.getYaw(), to.getPitch());
@@ -637,6 +645,14 @@ implements Listener {
             return;
         }
         e.setTo(newTo);
+        // Keep momentum across ticks so the player keeps moving instead of being re-clamped to ~0.05/t.
+        org.bukkit.util.Vector v = p.getVelocity();
+        double vh = Math.sqrt(v.getX() * v.getX() + v.getZ() * v.getZ());
+        if (vh < walkSpeed) {
+            double mul = (vh < 1.0E-4) ? walkSpeed : (walkSpeed / vh);
+            p.setVelocity(new org.bukkit.util.Vector(v.getX() * mul, Math.max(v.getY(), -0.05), v.getZ() * mul));
+            p.setFallDistance(0.0f);
+        }
     }
 
     @EventHandler(ignoreCancelled=true)

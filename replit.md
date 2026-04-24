@@ -26,6 +26,12 @@ The decompiled source has been touched up to compile cleanly. The freshly built 
 mvn -B clean package
 ```
 
+## v2.2.0 follow-up fixes (April 24, 2026 — round 2)
+- **Texture pack — bigger daggers + correct first-person orientation.** All 25 dagger models now extend a new `daggersmp:item/dagger_base` parent that defines explicit display transforms: ~2.4× scale in first person and ~1.35× in third person, plus a Y-axis rotation flip in first person so the blade points away from the player instead of back toward them.
+- **Arachnid cobweb passive** rewritten to be adaptive: instead of a flat 5× multiplier on the move delta, the move event now scales the player's intended motion up to a target walking speed (`daggers.arachnid.passive.cobweb-walk-speed`, default 0.215 blocks/tick) capped by `cobweb-multiplier` (default 30×), and immediately boosts the player's velocity vector to the same speed. Cobwebs feel like normal walking instead of a slow glitchy slog.
+- **Guardian beam** now spawns a real invisible vanilla `Guardian` entity at the caster's eye and updates its target each tick (either the ray-traced living entity, or an invisible marker armor stand at the beam endpoint). The client renders the actual ocean-monument beam (correct visual + `ENTITY_GUARDIAN_ATTACK` sound). Knockback default lowered from 0.5 to 0.12 and applied additively (`vel.add(kb)`) instead of overwriting the velocity, and Y bump reduced from 0.2 → 0.05. The guardian and anchor are cleaned up when the beam ends or is cancelled.
+- **All ability particles ~3× denser.** Bulk-bumped the `count` parameter on every `spawnParticle` call across the ability suite (Wind shockwave, Frost slam/aura, Pirate splash, Jungle vines, Ghost dash, Earth boulder/impact, Toxic cloud, Guardian aura, Storm bolts, Mafia/Lucky/Vampire bursts, etc.) for noticeably richer ability VFX.
+
 ## v2.2.0 follow-up fixes (April 2026)
 - **Tab completion** registered for `/dagger`, `/trust`, `/untrust`, `/ability1`, `/ability2`.
 - **`/dagger cooldown`** rewritten: simply resets all cooldowns; defaults to self when no player given.
