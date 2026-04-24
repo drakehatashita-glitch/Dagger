@@ -863,6 +863,45 @@ public class AbilityManager {
             tp.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, dur, slow));
             tp.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, dur, dark));
         }
+
+        // === SHADOW PULSE: expanding dark sphere + spiraling tendrils ===
+        final double finalRadius = radius;
+        new BukkitRunnable() {
+            int t = 0;
+            public void run() {
+                if (++t > 22) { this.cancel(); return; }
+                double waveR = finalRadius * t / 22.0;
+                Location loc = p.getLocation();
+                int steps = 60;
+                // Expanding ring at multiple heights
+                for (int i = 0; i < steps; i++) {
+                    double a = i * Math.PI * 2.0 / steps;
+                    for (int yy = 0; yy < 3; yy++) {
+                        double y = yy * 0.85;
+                        Location pt = loc.clone().add(Math.cos(a) * waveR, y, Math.sin(a) * waveR);
+                        pt.getWorld().spawnParticle(Particle.SQUID_INK, pt, 1, 0.02, 0.02, 0.02, 0.0);
+                        if (i % 5 == 0) {
+                            pt.getWorld().spawnParticle(
+                                Particle.DUST, pt, 1, 0, 0, 0, 0,
+                                (Object) new Particle.DustOptions(Color.fromRGB(20, 0, 45), 2.0f)
+                            );
+                        }
+                    }
+                }
+                // Shadow tendrils spiraling inward to caster position
+                for (int i = 0; i < 8; i++) {
+                    double a = (i * Math.PI * 2.0 / 8.0) + (t * 0.35);
+                    double r = waveR * 0.65;
+                    double y = 0.5 + (t * 0.06);
+                    Location sp = loc.clone().add(Math.cos(a) * r, y, Math.sin(a) * r);
+                    sp.getWorld().spawnParticle(Particle.SQUID_INK, sp, 2, 0.06, 0.12, 0.06, 0.0);
+                }
+                // Dense dark center cloud
+                if (t <= 8) {
+                    loc.getWorld().spawnParticle(Particle.SQUID_INK, loc.clone().add(0, 1.0, 0), 6, 0.3, 0.4, 0.3, 0.02);
+                }
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
     private void darknessAbility2(final Player p) {
@@ -870,25 +909,66 @@ public class AbilityManager {
         final Vector dir = start.getDirection().normalize();
         final double dmg = this.cfgD("daggers.darkness.ability2.beam-damage", 6.0);
         final double maxDist = this.cfgD("daggers.darkness.ability2.max-distance", 30.0);
+        // Pre-cast muzzle flash at the caster's eye
+        p.getWorld().spawnParticle(Particle.SQUID_INK, start.clone().add(0, 0, 0), 12, 0.15, 0.15, 0.15, 0.02);
+        p.getWorld().spawnParticle(
+            Particle.DUST, start, 8, 0.1, 0.1, 0.1, 0,
+            (Object) new Particle.DustOptions(Color.fromRGB(60, 0, 130), 1.8f)
+        );
         p.getWorld().playSound(start, "daggersmp:ability.darkness.sonic", 2.0f, 1.0f);
+        // Precompute perpendicular vectors for shockwave rings
+        final Vector perp1 = (Math.abs(dir.getX()) < 0.9
+            ? new Vector(1, 0, 0) : new Vector(0, 1, 0))
+            .crossProduct(dir).normalize();
+        final Vector perp2 = dir.clone().crossProduct(perp1).normalize();
         new BukkitRunnable(){
             double dist = 0.0;
             final Set<Entity> hit = new HashSet<Entity>();
-
+            int step = 0;
             public void run() {
                 for (int i = 0; i < 5; ++i) {
                     this.dist += 0.5;
+                    this.step++;
                     if (this.dist > maxDist) {
                         this.cancel();
                         return;
                     }
                     Location pt = start.clone().add(dir.clone().multiply(this.dist));
+                    // Core sonic distortion
                     pt.getWorld().spawnParticle(Particle.SONIC_BOOM, pt, 0);
+                    // Dense dark ink core — the visible "beam"
+                    pt.getWorld().spawnParticle(Particle.SQUID_INK, pt, 2, 0.04, 0.04, 0.04, 0.0);
+                    // Purple-violet outer glow halo
+                    pt.getWorld().spawnParticle(
+                        Particle.DUST, pt, 1, 0.1, 0.1, 0.1, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(55, 0, 120), 1.6f)
+                    );
+                    // Perpendicular shockwave rings every ~1 block
+                    if (this.step % 4 == 0) {
+                        for (int j = 0; j < 14; j++) {
+                            double a = j * Math.PI * 2.0 / 14.0;
+                            double rr = 0.45 + AbilityManager.this.random.nextDouble() * 0.25;
+                            Location rpt = pt.clone().add(
+                                perp1.clone().multiply(Math.cos(a) * rr)
+                                     .add(perp2.clone().multiply(Math.sin(a) * rr))
+                            );
+                            rpt.getWorld().spawnParticle(
+                                Particle.DUST, rpt, 1, 0, 0, 0, 0,
+                                (Object) new Particle.DustOptions(Color.fromRGB(100, 20, 210), 1.0f)
+                            );
+                        }
+                    }
                     for (Entity e : pt.getWorld().getNearbyEntities(pt, 1.0, 1.0, 1.0)) {
                         LivingEntity le;
                         if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || this.hit.contains(e) || AbilityManager.this.isTrustedEntity(p, e)) continue;
                         le.damage(dmg, (Entity)p);
                         this.hit.add(e);
+                        // Impact burst on target
+                        le.getWorld().spawnParticle(Particle.SQUID_INK, le.getLocation().clone().add(0, 1.1, 0), 18, 0.3, 0.45, 0.3, 0.04);
+                        le.getWorld().spawnParticle(
+                            Particle.DUST, le.getLocation().clone().add(0, 1.1, 0), 14, 0.3, 0.45, 0.3, 0,
+                            (Object) new Particle.DustOptions(Color.fromRGB(80, 0, 170), 1.6f)
+                        );
                     }
                 }
             }
@@ -1216,8 +1296,49 @@ public class AbilityManager {
     private void mirrorAbility1(final Player p) {
         long ticks = this.cfgTicks("daggers.mirror.ability1.full-reflect-duration-seconds", 10.0);
         p.setMetadata("dagger_mirror_full_reflect", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        new BukkitRunnable(){
 
+        // === ACTIVATION BURST: silver mirror flash ===
+        for (int i = 0; i < 48; i++) {
+            double a = i * Math.PI * 2.0 / 48.0;
+            double r = 0.7 + this.random.nextDouble() * 0.3;
+            Location bpt = p.getLocation().clone().add(Math.cos(a) * r, 1.0 + this.random.nextDouble() * 0.8, Math.sin(a) * r);
+            p.getWorld().spawnParticle(
+                Particle.DUST, bpt, 1, 0, 0, 0, 0,
+                (Object) new Particle.DustOptions(Color.fromRGB(220, 240, 255), 1.6f)
+            );
+        }
+        p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().clone().add(0, 1.0, 0), 18, 0.4, 0.6, 0.4, 0.06);
+        p.getWorld().spawnParticle(Particle.FLASH, p.getLocation().clone().add(0, 1.5, 0), 1, 0, 0, 0, 0);
+
+        // === CONTINUOUS MIRROR SHIELD AURA ===
+        final long endTick = ticks;
+        new BukkitRunnable(){
+            int t = 0;
+            public void run() {
+                if (++t > endTick || !p.isOnline() || !p.hasMetadata("dagger_mirror_full_reflect")) {
+                    this.cancel(); return;
+                }
+                java.util.Random r = AbilityManager.this.random;
+                Location base = p.getLocation();
+                // Silver rotating ring of mirror shards
+                for (int i = 0; i < 16; i++) {
+                    double a = (i * Math.PI * 2.0 / 16.0) + (t * 0.2);
+                    double rad = 0.85;
+                    double y = 0.7 + Math.sin(t * 0.2 + i * 0.5) * 0.4;
+                    Location rpt = base.clone().add(Math.cos(a) * rad, y, Math.sin(a) * rad);
+                    rpt.getWorld().spawnParticle(
+                        Particle.DUST, rpt, 1, 0, 0, 0, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(200 + r.nextInt(55), 220 + r.nextInt(35), 255), 1.1f)
+                    );
+                }
+                // END_ROD glints periodically
+                if (t % 6 == 0) {
+                    base.getWorld().spawnParticle(Particle.END_ROD, base.clone().add(0, 1.2, 0), 3, 0.5, 0.5, 0.5, 0.04);
+                }
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
+
+        new BukkitRunnable(){
             public void run() {
                 if (p.isOnline()) {
                     p.removeMetadata("dagger_mirror_full_reflect", (Plugin)AbilityManager.this.plugin);
@@ -1530,8 +1651,77 @@ public class AbilityManager {
         int dur = this.cfgTicks("daggers.vampire.ability1.duration-seconds", 8.0);
         p.setMetadata("dagger_vampire_heal", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
         p.getWorld().playSound(p.getLocation(), "daggersmp:ability.vampire.heal", 1.0f, 1.5f);
-        new BukkitRunnable(){
 
+        // === ACTIVATION BURST: blood surge ring ===
+        for (int i = 0; i < 48; i++) {
+            double a = i * Math.PI * 2.0 / 48.0;
+            double r = 0.65 + this.random.nextDouble() * 0.4;
+            Location bpt = p.getLocation().clone().add(Math.cos(a) * r, 1.0 + this.random.nextDouble() * 0.9, Math.sin(a) * r);
+            p.getWorld().spawnParticle(
+                Particle.DUST, bpt, 1, 0, 0, 0, 0,
+                (Object) new Particle.DustOptions(Color.fromRGB(180, 0, 0), 1.8f)
+            );
+        }
+        p.getWorld().spawnParticle(Particle.HEART, p.getLocation().clone().add(0, 2.2, 0), 6, 0.3, 0.2, 0.3, 0.0);
+
+        // === CONTINUOUS BLOOD DRAIN AURA ===
+        new BukkitRunnable(){
+            int t = 0;
+            public void run() {
+                if (++t > dur || !p.isOnline()) { this.cancel(); return; }
+                java.util.Random r = AbilityManager.this.random;
+                Location base = p.getLocation();
+
+                // Swirling red aura coiling around the caster
+                for (int i = 0; i < 12; i++) {
+                    double a = (t * 0.28) + (i * Math.PI * 2.0 / 12.0);
+                    double rad = 0.75 + Math.sin(t * 0.18 + i) * 0.22;
+                    double y = 0.7 + r.nextDouble() * 1.3;
+                    Location apt = base.clone().add(Math.cos(a) * rad, y, Math.sin(a) * rad);
+                    apt.getWorld().spawnParticle(
+                        Particle.DUST, apt, 1, 0, 0, 0, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(150 + r.nextInt(80), 0, 0), 1.2f)
+                    );
+                }
+
+                // Blood streams flowing from nearby enemies toward the caster
+                if (t % 2 == 0) {
+                    for (Entity e : p.getNearbyEntities(8, 8, 8)) {
+                        if (!(e instanceof LivingEntity) || e == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                        Vector toward = base.toVector().subtract(e.getLocation().toVector());
+                        double dist = toward.length();
+                        if (dist < 0.5) continue;
+                        for (int k = 1; k <= 4; k++) {
+                            double frac = k / 5.0;
+                            Location sp = e.getLocation().clone().add(0, 1.4, 0).add(toward.clone().multiply(frac));
+                            sp.getWorld().spawnParticle(
+                                Particle.DUST, sp, 1, 0.04, 0.04, 0.04, 0,
+                                (Object) new Particle.DustOptions(Color.fromRGB(210, 10, 20), 0.85f)
+                            );
+                        }
+                        if (t % 8 == 0) {
+                            e.getWorld().spawnParticle(Particle.HEART, e.getLocation().clone().add(0, 2.1, 0), 1, 0.1, 0.1, 0.1, 0.0);
+                        }
+                        break;
+                    }
+                }
+
+                // Pulsing blood ring expanding from caster every 10 ticks
+                if (t % 10 == 0) {
+                    for (int i = 0; i < 30; i++) {
+                        double a = i * Math.PI * 2.0 / 30.0;
+                        Location rpt = base.clone().add(Math.cos(a) * 1.6, 0.4, Math.sin(a) * 1.6);
+                        rpt.getWorld().spawnParticle(
+                            Particle.DUST, rpt, 1, 0, 0, 0, 0,
+                            (Object) new Particle.DustOptions(Color.fromRGB(220, 10, 10), 1.5f)
+                        );
+                    }
+                    p.getWorld().spawnParticle(Particle.HEART, base.clone().add(0, 2.6, 0), 2, 0.2, 0.1, 0.2, 0.0);
+                }
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
+
+        new BukkitRunnable(){
             public void run() {
                 if (p.isOnline()) {
                     p.removeMetadata("dagger_vampire_heal", (Plugin)AbilityManager.this.plugin);
@@ -1872,8 +2062,19 @@ public class AbilityManager {
                 if (!b.getType().isAir()) continue;
                 b.setType(mat);
                 wall.add(b);
+                // Eruption burst at each block as it places
+                Location bc = bl.clone().add(0.5, 0.5, 0.5);
+                bc.getWorld().spawnParticle(Particle.BLOCK, bc, 10, 0.3, 0.3, 0.3, 0.08, mat.createBlockData());
+                if (row == 0) {
+                    bc.getWorld().spawnParticle(Particle.LARGE_SMOKE, bc, 4, 0.2, 0.1, 0.2, 0.015);
+                }
             }
         }
+        // Seismic ground crack at the wall base: dust + debris burst
+        Location midWall = base.clone().add(right.clone().multiply((width / 2.0) - 0.5)).add(0, 0.3, 0);
+        midWall.getWorld().spawnParticle(Particle.LARGE_SMOKE, midWall, 25, (width * 0.5), 0.2, 0.4, 0.04);
+        midWall.getWorld().spawnParticle(Particle.BLOCK, midWall, 50, (width * 0.55), 0.4, 0.4, 0.12, mat.createBlockData());
+        midWall.getWorld().spawnParticle(Particle.EXPLOSION, midWall, 4, (width * 0.3), 0.1, 0.3, 0.0);
         final UUID uuid = p.getUniqueId();
         for (Block b : this.earthWalls.getOrDefault(uuid, new ArrayList<Block>())) {
             b.setType(Material.AIR);
@@ -1926,8 +2127,13 @@ public class AbilityManager {
                 if (boulder.isValid()) {
                     Location bl = boulder.getLocation();
                     display.teleport(bl);
-                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.clone().add(0, 0.5, 0), 24, boulderScale * 0.4, boulderScale * 0.4, boulderScale * 0.4, Material.COBBLESTONE.createBlockData());
-                    bl.getWorld().spawnParticle(Particle.LARGE_SMOKE, bl, 9, 0.3, 0.3, 0.3, 0.02);
+                    // Rock debris cloud trailing behind the boulder
+                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.clone().add(0, 0.5, 0), 30, boulderScale * 0.45, boulderScale * 0.45, boulderScale * 0.45, 0.05, Material.COBBLESTONE.createBlockData());
+                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.clone().add(0, 0.5, 0), 14, boulderScale * 0.35, boulderScale * 0.35, boulderScale * 0.35, 0.03, Material.GRAVEL.createBlockData());
+                    bl.getWorld().spawnParticle(Particle.LARGE_SMOKE, bl, 12, 0.35, 0.3, 0.35, 0.025);
+                    // Dust cloud billowing just behind the boulder
+                    bl.getWorld().spawnParticle(Particle.DUST, bl.clone().add(0, 1.0, 0), 6, boulderScale * 0.3, boulderScale * 0.3, boulderScale * 0.3, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(140, 110, 80), 2.2f));
                     // Detonate on direct entity contact mid-flight.
                     for (Entity near : bl.getWorld().getNearbyEntities(bl, 1.5, 1.5, 1.5)) {
                         if (near == p || near == boulder || near == display || !(near instanceof LivingEntity)) continue;
@@ -1941,9 +2147,25 @@ public class AbilityManager {
                     boulder.remove();
                     display.remove();
                     impact.getWorld().createExplosion(impact, (float) Math.min(4.0, radius * 0.5), false, false, p);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 9, 1.0, 0.5, 1.0, 0.0);
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 90, radius * 0.4, 0.5, radius * 0.4, 0.0);
-                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 200, radius * 0.5, 0.5, radius * 0.5, Material.COBBLESTONE.createBlockData());
+                    // === IMPACT: multi-layer crater explosion ===
+                    // Giant emitter + clustered smaller explosions
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 12, 1.2, 0.6, 1.2, 0.0);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 120, radius * 0.45, 0.6, radius * 0.45, 0.0);
+                    // Dense cobblestone + gravel debris burst
+                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 280, radius * 0.55, 0.8, radius * 0.55, 0.15, Material.COBBLESTONE.createBlockData());
+                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 120, radius * 0.4, 0.6, radius * 0.4, 0.12, Material.GRAVEL.createBlockData());
+                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 80, radius * 0.35, 0.5, radius * 0.35, 0.10, Material.DIRT.createBlockData());
+                    // Dirt dust billowing outward
+                    impact.getWorld().spawnParticle(Particle.DUST, impact.clone().add(0, 0.5, 0), 50, radius * 0.5, 0.4, radius * 0.5, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(130, 100, 70), 3.0f));
+                    // Shockwave ring of stones at ground level
+                    for (int ri = 0; ri < 40; ri++) {
+                        double ra = ri * Math.PI * 2.0 / 40.0;
+                        Location rpt = impact.clone().add(Math.cos(ra) * radius * 0.7, 0.2, Math.sin(ra) * radius * 0.7);
+                        rpt.getWorld().spawnParticle(Particle.BLOCK, rpt, 6, 0.15, 0.1, 0.15, 0.08, Material.COBBLESTONE.createBlockData());
+                    }
+                    // Smoke column rising from crater
+                    impact.getWorld().spawnParticle(Particle.LARGE_SMOKE, impact, 60, radius * 0.3, 0.3, radius * 0.3, 0.05);
                     impact.getWorld().playSound(impact, "daggersmp:ability.earth.boulder", 2.0f, 0.7f);
                     for (Entity e : impact.getWorld().getNearbyEntities(impact, radius, radius, radius)) {
                         LivingEntity le;
@@ -2108,16 +2330,63 @@ public class AbilityManager {
         p.setFallDistance(0.0f);
         this.windFallDamageImmune.add(p.getUniqueId());
         p.getWorld().playSound(p.getLocation(), "daggersmp:ability.ghost.dash", 1.2f, 1.5f);
+
+        // === DASH LAUNCH BURST: soul ring at origin ===
+        Location launchLoc = p.getLocation().clone();
+        for (int i = 0; i < 40; i++) {
+            double a = i * Math.PI * 2.0 / 40.0;
+            double r = 0.6 + this.random.nextDouble() * 0.35;
+            Location bpt = launchLoc.clone().add(Math.cos(a) * r, 0.9 + this.random.nextDouble() * 0.7, Math.sin(a) * r);
+            launchLoc.getWorld().spawnParticle(Particle.SOUL, bpt, 1, 0.04, 0.08, 0.04, 0.015);
+            if (i % 4 == 0) {
+                launchLoc.getWorld().spawnParticle(
+                    Particle.DUST, bpt, 1, 0, 0, 0, 0,
+                    (Object) new Particle.DustOptions(Color.fromRGB(215, 238, 255), 1.3f)
+                );
+            }
+        }
+        launchLoc.getWorld().spawnParticle(Particle.END_ROD, launchLoc.clone().add(0, 1.2, 0), 6, 0.3, 0.4, 0.3, 0.06);
+
         new BukkitRunnable() {
             int t = 0;
+            Location prevLoc = p.getLocation().clone();
             public void run() {
-                if (++t > 12 || !p.isOnline()) {
+                if (++t > 18 || !p.isOnline()) {
                     AbilityManager.this.windFallDamageImmune.remove(p.getUniqueId());
                     this.cancel();
                     return;
                 }
-                p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1.0, 0), 12, 0.2, 0.2, 0.2, 0.0);
-                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 1.0, 0), 9, 0.2, 0.3, 0.2, (Object) new Particle.DustOptions(Color.WHITE, 1.2f));
+                Location cur = p.getLocation().clone();
+                java.util.Random r = AbilityManager.this.random;
+
+                // Dense spectral trail interpolated between previous and current position
+                for (int k = 0; k < 4; k++) {
+                    double frac = k / 4.0;
+                    double tx = prevLoc.getX() + (cur.getX() - prevLoc.getX()) * frac;
+                    double ty = prevLoc.getY() + (cur.getY() - prevLoc.getY()) * frac;
+                    double tz = prevLoc.getZ() + (cur.getZ() - prevLoc.getZ()) * frac;
+                    Location tpt = new Location(cur.getWorld(), tx, ty + 1.0, tz);
+                    cur.getWorld().spawnParticle(Particle.SOUL, tpt, 3, 0.14, 0.2, 0.14, 0.012);
+                    cur.getWorld().spawnParticle(Particle.CLOUD, tpt, 2, 0.1, 0.14, 0.1, 0.015);
+                    cur.getWorld().spawnParticle(
+                        Particle.DUST, tpt, 1, 0.08, 0.12, 0.08, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(200, 228, 255), 0.95f)
+                    );
+                }
+
+                // Spectral afterimage ring left behind every 4 ticks
+                if (t % 4 == 0) {
+                    for (int i = 0; i < 20; i++) {
+                        double a = i * Math.PI * 2.0 / 20.0;
+                        Location rpt = cur.clone().add(Math.cos(a) * 0.5, 1.0, Math.sin(a) * 0.5);
+                        rpt.getWorld().spawnParticle(
+                            Particle.DUST, rpt, 1, 0, 0, 0, 0,
+                            (Object) new Particle.DustOptions(Color.fromRGB(175, 218, 255), 0.8f)
+                        );
+                    }
+                    cur.getWorld().spawnParticle(Particle.END_ROD, cur.clone().add(0, 1.6, 0), 4, 0.25, 0.3, 0.25, 0.04);
+                }
+                prevLoc = cur.clone();
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
@@ -2133,16 +2402,44 @@ public class AbilityManager {
         p.setMetadata("dagger_ghost_noclip", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
         p.getWorld().playSound(p.getLocation(), "daggersmp:ability.ghost.dash", 1.0f, 0.6f);
         final BukkitRunnable trail = new BukkitRunnable(){
+            int t = 0;
             public void run() {
-                if (!p.isOnline()) {
-                    this.cancel();
-                    return;
+                if (!p.isOnline()) { this.cancel(); return; }
+                this.t++;
+                java.util.Random r = AbilityManager.this.random;
+                Location loc = p.getLocation();
+                // Dense soul particle aura orbiting the ghost form
+                for (int i = 0; i < 8; i++) {
+                    double a = r.nextDouble() * Math.PI * 2;
+                    double rad = 0.4 + r.nextDouble() * 0.55;
+                    double y = 0.4 + r.nextDouble() * 1.6;
+                    Location sp = loc.clone().add(Math.cos(a) * rad, y, Math.sin(a) * rad);
+                    sp.getWorld().spawnParticle(Particle.SOUL, sp, 1, 0.04, 0.08, 0.04, 0.008);
                 }
-                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0.0, 1.0, 0.0), 18, 0.3, 0.5, 0.3, (Object)new Particle.DustOptions(Color.WHITE, 1.4f));
-                p.getWorld().spawnParticle(Particle.SOUL, p.getLocation().add(0.0, 0.5, 0.0), 5, 0.2, 0.2, 0.2, 0.0);
+                // Ice-blue shimmer wisps scattered around body
+                for (int i = 0; i < 6; i++) {
+                    Location sp = loc.clone().add(
+                        (r.nextDouble() - 0.5) * 0.9, r.nextDouble() * 2.1, (r.nextDouble() - 0.5) * 0.9);
+                    sp.getWorld().spawnParticle(
+                        Particle.DUST, sp, 1, 0, 0, 0, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(205, 228, 255), 1.1f)
+                    );
+                }
+                // Spectral shroud ring + END_ROD glints every 8 ticks
+                if (this.t % 8 == 0) {
+                    for (int i = 0; i < 24; i++) {
+                        double a = i * Math.PI * 2.0 / 24.0;
+                        Location rpt = loc.clone().add(Math.cos(a) * 0.72, 1.0, Math.sin(a) * 0.72);
+                        rpt.getWorld().spawnParticle(
+                            Particle.DUST, rpt, 1, 0, 0, 0, 0,
+                            (Object) new Particle.DustOptions(Color.fromRGB(185, 218, 255), 0.9f)
+                        );
+                    }
+                    loc.getWorld().spawnParticle(Particle.END_ROD, loc.clone().add(0, 1.6, 0), 5, 0.38, 0.38, 0.38, 0.05);
+                }
             }
         };
-        trail.runTaskTimer((Plugin)this.plugin, 0L, 3L);
+        trail.runTaskTimer((Plugin)this.plugin, 0L, 2L);
         new BukkitRunnable(){
             public void run() {
                 AbilityManager.this.ghostFormActive.remove(uuid);
