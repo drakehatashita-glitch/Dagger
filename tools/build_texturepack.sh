@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # Builds the DaggerSMP texture pack on top of AltarSMP's 3D weapon assets.
-# - Reuses AltarSMP's Blockbench 3D weapon models (true cuboid geometry, not
-#   flat extrusion) and their textures/animations.
-# - Overrides assets/minecraft/items/netherite_sword.json so the 25 dagger CMDs
-#   (1001-1025) each render as one of those 3D weapon models.
-# - Pack format & structure match AltarSMP exactly.
+#
+# How model overrides work in 1.21.4+ (and especially 1.21.11):
+#   - The plugin sets the item_model component on each dagger to
+#     daggersmp:dagger/<id> via meta.setItemModel(...).
+#   - The client looks up assets/daggersmp/items/dagger/<id>.json from this
+#     resource pack and renders whatever model that file points to.
+#   - We point each of those item-model files at one of AltarSMP's existing
+#     3D Blockbench weapon models in assets/minecraft/models/weapons/...
+#
+# We also keep a CMD-based range_dispatch on netherite_sword.json as a
+# legacy fallback for any tooling/environment that still relies on CMD.
 set -euo pipefail
 
 SRC_ZIP="attached_assets/AltarSMP_1776990116869.zip"
@@ -18,60 +24,88 @@ mkdir -p "$ROOT"
 # animations, and supporting files come along.
 unzip -oq "$SRC_ZIP" -d "$ROOT"
 
-# Replace netherite_sword.json with our 25-dagger mapping.
-# Each dagger maps to one of AltarSMP's existing 3D weapon models, chosen
-# thematically. Several daggers intentionally share the same base model
-# (e.g. Pirate + Mafia both use the cutlass) since we have 25 daggers and
-# ~16 unique weapon models in the pack.
-cat > "$ROOT/assets/minecraft/items/netherite_sword.json" <<'JSON'
+# 25 daggers -> AltarSMP 3D weapon model paths (chosen thematically; some
+# share models since AltarSMP has ~16 unique weapons and we have 25 daggers).
+# Format: dagger_id|cmd|model_path
+DAGGERS=(
+  "strength|1001|weapons/arc3/pure_blade"
+  "speed|1002|weapons/arc3/dagger"
+  "wind|1003|weapons/arc3/wind"
+  "life|1004|weapons/arc3/cutlass"
+  "crimson|1005|weapons/bloodlust"
+  "darkness|1006|weapons/arc5/sculk"
+  "hack|1007|weapons/arc3/gauntlet"
+  "frost|1008|weapons/frost"
+  "mafia|1009|weapons/hyperion"
+  "pirate|1010|weapons/arc3/cutlass"
+  "void|1011|weapons/arc5/eclipse"
+  "lucky|1012|weapons/arc3/pure_blade"
+  "mirror|1013|weapons/illusion_wand"
+  "jungle|1014|weapons/bone_blade"
+  "midas|1015|weapons/arc5/mace/lv3"
+  "toxic|1016|weapons/arc3/witherbone"
+  "arachnid|1017|weapons/arc3/dagger"
+  "vampire|1018|custom/vampire"
+  "gravity|1019|weapons/arc5/nukeremote"
+  "earth|1020|weapons/arc3/axe"
+  "titan|1021|weapons/arc5/mace/lv2"
+  "guardian|1022|weapons/arc5/mace/lv1"
+  "ghost|1023|custom/pale"
+  "chance|1024|weapons/illusion_wand"
+  "storm|1025|weapons/arc3/wind"
+)
+
+# --- Modern path: per-dagger item_model definitions under daggersmp namespace.
+DAG_ITEMS_DIR="$ROOT/assets/daggersmp/items/dagger"
+mkdir -p "$DAG_ITEMS_DIR"
+for row in "${DAGGERS[@]}"; do
+  IFS='|' read -r id cmd model <<< "$row"
+  cat > "$DAG_ITEMS_DIR/$id.json" <<JSON
 {
   "model": {
-    "type": "minecraft:range_dispatch",
-    "property": "minecraft:custom_model_data",
-    "fallback": {
-      "type": "minecraft:model",
-      "model": "minecraft:item/netherite_sword"
-    },
-    "entries": [
-      {"threshold": 1001, "model": {"type": "minecraft:model", "model": "weapons/arc3/pure_blade"}},
-      {"threshold": 1002, "model": {"type": "minecraft:model", "model": "weapons/arc3/dagger"}},
-      {"threshold": 1003, "model": {"type": "minecraft:model", "model": "weapons/arc3/wind"}},
-      {"threshold": 1004, "model": {"type": "minecraft:model", "model": "weapons/arc3/cutlass"}},
-      {"threshold": 1005, "model": {"type": "minecraft:model", "model": "weapons/bloodlust"}},
-      {"threshold": 1006, "model": {"type": "minecraft:model", "model": "weapons/arc5/sculk"}},
-      {"threshold": 1007, "model": {"type": "minecraft:model", "model": "weapons/arc3/gauntlet"}},
-      {"threshold": 1008, "model": {"type": "minecraft:model", "model": "weapons/frost"}},
-      {"threshold": 1009, "model": {"type": "minecraft:model", "model": "weapons/hyperion"}},
-      {"threshold": 1010, "model": {"type": "minecraft:model", "model": "weapons/arc3/cutlass"}},
-      {"threshold": 1011, "model": {"type": "minecraft:model", "model": "weapons/arc5/eclipse"}},
-      {"threshold": 1012, "model": {"type": "minecraft:model", "model": "weapons/arc3/pure_blade"}},
-      {"threshold": 1013, "model": {"type": "minecraft:model", "model": "weapons/illusion_wand"}},
-      {"threshold": 1014, "model": {"type": "minecraft:model", "model": "weapons/bone_blade"}},
-      {"threshold": 1015, "model": {"type": "minecraft:model", "model": "weapons/arc5/mace/lv3"}},
-      {"threshold": 1016, "model": {"type": "minecraft:model", "model": "weapons/arc3/witherbone"}},
-      {"threshold": 1017, "model": {"type": "minecraft:model", "model": "weapons/arc3/dagger"}},
-      {"threshold": 1018, "model": {"type": "minecraft:model", "model": "custom/vampire"}},
-      {"threshold": 1019, "model": {"type": "minecraft:model", "model": "weapons/arc5/nukeremote"}},
-      {"threshold": 1020, "model": {"type": "minecraft:model", "model": "weapons/arc3/axe"}},
-      {"threshold": 1021, "model": {"type": "minecraft:model", "model": "weapons/arc5/mace/lv2"}},
-      {"threshold": 1022, "model": {"type": "minecraft:model", "model": "weapons/arc5/mace/lv1"}},
-      {"threshold": 1023, "model": {"type": "minecraft:model", "model": "custom/pale"}},
-      {"threshold": 1024, "model": {"type": "minecraft:model", "model": "weapons/illusion_wand"}},
-      {"threshold": 1025, "model": {"type": "minecraft:model", "model": "weapons/arc3/wind"}}
-    ]
+    "type": "minecraft:model",
+    "model": "$model"
   }
 }
 JSON
+done
 
-# Validate the JSON we just wrote.
+# --- Legacy fallback: keep CMD range_dispatch on netherite_sword.json too.
+{
+  echo '{'
+  echo '  "model": {'
+  echo '    "type": "minecraft:range_dispatch",'
+  echo '    "property": "minecraft:custom_model_data",'
+  echo '    "fallback": {"type": "minecraft:model", "model": "minecraft:item/netherite_sword"},'
+  echo '    "entries": ['
+  first=1
+  for row in "${DAGGERS[@]}"; do
+    IFS='|' read -r id cmd model <<< "$row"
+    [[ $first -eq 1 ]] || echo ','
+    first=0
+    printf '      {"threshold": %s, "model": {"type": "minecraft:model", "model": "%s"}}' "$cmd" "$model"
+  done
+  echo
+  echo '    ]'
+  echo '  }'
+  echo '}'
+} > "$ROOT/assets/minecraft/items/netherite_sword.json"
+
+# Validate JSON.
 jq . "$ROOT/assets/minecraft/items/netherite_sword.json" > /dev/null
+for row in "${DAGGERS[@]}"; do
+  IFS='|' read -r id cmd model <<< "$row"
+  jq . "$DAG_ITEMS_DIR/$id.json" > /dev/null
+done
 
-# Update pack.mcmeta to credit both packs and bump description.
+# pack.mcmeta — pack_format 81 with a wide supported_formats range so the
+# client (1.21.11) accepts it without "made for older version" rejection.
 cat > "$ROOT/pack.mcmeta" <<'JSON'
 {
   "pack": {
-    "pack_format": 47,
-    "description": "§cDaggerSMP §7— 25 3D daggers §8(weapon models from AltarSMP by Gwamba & Quacker)"
+    "pack_format": 81,
+    "supported_formats": {"min_inclusive": 46, "max_inclusive": 200},
+    "description": "§cDaggerSMP §7— 25 3D daggers §8(weapons by Gwamba & Quacker, AltarSMP)"
   }
 }
 JSON
@@ -83,6 +117,5 @@ echo "Done."
 echo "  Folder: $ROOT/"
 echo "  Zip:    $OUT_ZIP"
 echo
-echo "Dagger -> 3D model mapping:"
-jq -r '.model.entries[] | "  CMD \(.threshold)  ->  \(.model.model)"' \
-  "$ROOT/assets/minecraft/items/netherite_sword.json"
+echo "Per-dagger item_model definitions written to assets/daggersmp/items/dagger/"
+echo "Legacy CMD range_dispatch kept in assets/minecraft/items/netherite_sword.json"

@@ -5,7 +5,7 @@ generated = []
 id = "BE8fbNiPJJUtI4yXMcL6V"
 uri = "file://DaggerSMP-TexturePack.zip"
 type = "unspecified"
-title = "DaggerSMP Texture Pack (3D weapons via AltarSMP base)"
+title = "DaggerSMP Texture Pack (1.21.11 compatible)"
 
 [[outputs]]
 id = "pzbKgh8nLgvaq79N-PC_t"

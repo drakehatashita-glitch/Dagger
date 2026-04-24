@@ -95,6 +95,7 @@ public enum DaggerType {
         meta.addEnchant(Enchantment.SWEEPING_EDGE, 3, true);
         meta.setUnbreakable(true);
         meta.setCustomModelData(this.customModelData);
+        meta.setItemModel(new NamespacedKey("daggersmp", "dagger/" + this.id));
         if (this == CRIMSON) {
             meta.addEnchant(Enchantment.FIRE_ASPECT, 5, true);
         }
