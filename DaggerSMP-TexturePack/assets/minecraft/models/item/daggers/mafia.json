@@ -1,4 +1,4 @@
 {
   "parent": "daggersmp:item/dagger_base",
-  "textures": { "layer0": "minecraft:item/daggers/mafia" }
+  "textures": { "0": "minecraft:item/daggers/mafia" }
 }
