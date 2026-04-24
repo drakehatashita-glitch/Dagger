@@ -381,7 +381,6 @@ public class AbilityManager {
         if (this.chanceActiveDagger.containsKey(uuid) && System.currentTimeMillis() > this.chanceEndTime.getOrDefault(uuid, 0L)) {
             this.chanceActiveDagger.remove(uuid);
             this.chanceEndTime.remove(uuid);
-            player.sendMessage("\u00a7dYour Chance Dagger transformation has ended.");
         }
     }
 
@@ -402,7 +401,6 @@ public class AbilityManager {
         PotionEffectType[] pool = new PotionEffectType[]{PotionEffectType.SPEED, PotionEffectType.STRENGTH, PotionEffectType.RESISTANCE, PotionEffectType.REGENERATION, PotionEffectType.HASTE, PotionEffectType.FIRE_RESISTANCE, PotionEffectType.NIGHT_VISION, PotionEffectType.ABSORPTION, PotionEffectType.HEALTH_BOOST};
         PotionEffectType chosen = pool[this.random.nextInt(pool.length)];
         p.addPotionEffect(new PotionEffect(chosen, durTicks, amp));
-        p.sendMessage("\u00a7dChance: \u00a77granted \u00a7d" + chosen.getKey().getKey() + " " + (amp + 1));
     }
 
     private void tickLifeStealBonus(Player p) {
@@ -446,7 +444,6 @@ public class AbilityManager {
         CooldownManager cm = this.plugin.getCooldownManager();
         if (cm.isOnCooldown(p.getUniqueId(), t, n)) {
             long rem = cm.getRemainingSeconds(p.getUniqueId(), t, n);
-            p.sendMessage("\u00a7cAbility " + n + " on cooldown for \u00a7e" + rem + "s\u00a7c!");
             return;
         }
         boolean bl = defer = t == DaggerType.VOID && n == 2;
@@ -563,7 +560,6 @@ public class AbilityManager {
                 break;
             }
             default: {
-                p.sendMessage("\u00a7cNo ability 1 for this dagger.");
             }
         }
     }
@@ -655,30 +651,25 @@ public class AbilityManager {
                 break;
             }
             default: {
-                p.sendMessage("\u00a7cNo second ability for this dagger.");
             }
         }
     }
 
     private void strengthAbility1(Player p) {
         p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, this.cfgTicks("daggers.strength.ability1.duration-seconds", 3.0), this.cfgI("daggers.strength.ability1.amplifier", 2)));
-        p.sendMessage("\u00a7cStrength activated!");
     }
 
     private void strengthAbility2(Player p) {
         p.setMetadata("dagger_strength_armor_break", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a7cNext hit on a player will damage their armor durability!");
     }
 
     private void speedAbility1(Player p) {
         p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, this.cfgTicks("daggers.speed.ability1.duration-seconds", 7.0), this.cfgI("daggers.speed.ability1.amplifier", 4)));
-        p.sendMessage("\u00a7bSpeed activated!");
     }
 
     private void speedAbility2(final Player p) {
         final AttributeInstance attr = p.getAttribute(Attribute.ATTACK_SPEED);
         if (attr == null) {
-            p.sendMessage("\u00a7cAttack speed attribute unavailable.");
             return;
         }
         for (AttributeModifier m : new ArrayList<AttributeModifier>(attr.getModifiers())) {
@@ -689,7 +680,6 @@ public class AbilityManager {
         double mult = this.cfgD("daggers.speed.ability2.attack-speed-bonus", 0.5);
         attr.addModifier(new AttributeModifier(SPEED_AS_KEY, base * mult, AttributeModifier.Operation.ADD_NUMBER));
         long ticks = this.cfgTicks("daggers.speed.ability2.duration-seconds", 7.0);
-        p.sendMessage("\u00a7b+" + (int)(mult * 100.0) + "% attack speed for " + ticks / 20L + "s!");
         new BukkitRunnable(){
 
             public void run() {
@@ -705,12 +695,12 @@ public class AbilityManager {
     }
 
     private void windAbility1(final Player p) {
-        double dist = this.cfgD("daggers.wind.ability1.dash-blocks", 35.0);
-        Vector dir = p.getLocation().getDirection().normalize().multiply(Math.max(2.0, dist * 0.12));
-        p.setVelocity(new Vector(dir.getX(), Math.max(0.4, p.getVelocity().getY()), dir.getZ()));
+        double dist = this.cfgD("daggers.wind.ability1.dash-blocks", 20.0);
+        // Full look direction so the dash goes wherever the player is aiming (up, down, level).
+        Vector dir = p.getLocation().getDirection().normalize().multiply(Math.max(1.5, dist * 0.12));
+        p.setVelocity(dir);
         this.windFallDamageImmune.add(p.getUniqueId());
         p.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1.0f, 1.5f);
-        p.sendMessage("\u00a7fWind dash!");
         new BukkitRunnable(){
 
             public void run() {
@@ -725,7 +715,6 @@ public class AbilityManager {
         Vector dir = p.getLocation().getDirection();
         p.setVelocity(new Vector(dir.getX() * 0.6, upward, dir.getZ() * 0.6));
         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SHOOT, 1.0f, 1.5f);
-        p.sendMessage("\u00a7fLeap! Shockwave on landing.");
         final UUID uuid = p.getUniqueId();
         new BukkitRunnable(){
             int ticks = 0;
@@ -786,7 +775,6 @@ public class AbilityManager {
             ++hits;
         }
         if (hits == 0) {
-            p.sendMessage("\u00a7cNo nearby players to steal from!");
             return;
         }
         this.updateLifeStealAttribute(p);
@@ -794,7 +782,6 @@ public class AbilityManager {
         if (attr != null) {
             p.setHealth(Math.min(attr.getValue(), p.getHealth() + this.cfgD("daggers.life.ability1.bonus-hearts-per-player", 6.0)));
         }
-        p.sendMessage("\u00a7aStole life from " + hits + " player(s)! +" + hits + " bonus hearts.");
     }
 
     private void lifeAbility2(Player p) {
@@ -805,15 +792,12 @@ public class AbilityManager {
             Player ally;
             if (!(e instanceof Player) || (ally = (Player)e) == p || !this.plugin.getTrustManager().isTrusted(p.getUniqueId(), ally.getUniqueId())) continue;
             ally.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, dur, amp));
-            ally.sendMessage("\u00a7a" + p.getName() + " granted you Regen " + (amp + 1) + "!");
         }
         p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, dur, amp));
-        p.sendMessage("\u00a7aGranted regen to nearby trusted allies!");
     }
 
     private void crimsonAbility1(Player p) {
         p.setMetadata("dagger_crimson_wither_next", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a74Next hit will inflict Wither!");
     }
 
     private void crimsonAbility2(Player p) {
@@ -825,7 +809,6 @@ public class AbilityManager {
         fb.setYield((float)this.cfgD("daggers.crimson.ability2.explosion-power", 2.0));
         fb.setMetadata("dagger_crimson_pierce_fireres", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)p.getUniqueId().toString()));
         fb.setMetadata("dagger_crimson_damage", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)this.cfgD("daggers.crimson.ability2.damage", 6.0)));
-        p.sendMessage("\u00a74Fireball launched!");
     }
 
     private void darknessAbility1(Player p) {
@@ -840,7 +823,6 @@ public class AbilityManager {
             tp.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, dur, slow));
             tp.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, dur, dark));
         }
-        p.sendMessage("\u00a78Darkness erupts around you!");
     }
 
     private void darknessAbility2(final Player p) {
@@ -871,7 +853,6 @@ public class AbilityManager {
                 }
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
-        p.sendMessage("\u00a78Sonic Beam fired!");
     }
 
     private void hackAbility1(Player p) {
@@ -884,7 +865,6 @@ public class AbilityManager {
             le.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, dur, 0));
             ++count;
         }
-        p.sendMessage("\u00a72Revealed " + count + " entities (glowing for " + dur / 20 + "s)!");
     }
 
     private void hackAbility2(final Player p) {
@@ -907,7 +887,6 @@ public class AbilityManager {
             breach.addModifier(new AttributeModifier(key2, bonus, AttributeModifier.Operation.ADD_NUMBER));
         }
         p.setMetadata("dagger_hack_hitbox", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a72Hack reach +" + bonus + " for " + ticks / 20L + "s!");
         new BukkitRunnable(){
             public void run() {
                 if (p.isOnline()) {
@@ -960,7 +939,6 @@ public class AbilityManager {
             }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
         }
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_POWDER_SNOW_PLACE, 2.0f, 1.0f);
-        p.sendMessage("\u00a73Nearby enemies frozen in place!");
     }
 
     private void frostAbility2(Player p) {
@@ -982,12 +960,10 @@ public class AbilityManager {
                 }
             }.runTaskLater((Plugin)this.plugin, (long)ticks);
         }
-        p.sendMessage("\u00a73Frost field deployed for " + ticks / 20 + "s!");
     }
 
     private void mafiaAbility1(Player p) {
         p.setMetadata("dagger_mafia_next_hit", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a76Next hit applies poison, weakness, hunger!");
     }
 
     private void mafiaAbility2(Player player) {
@@ -1012,7 +988,6 @@ public class AbilityManager {
             vinds.add(v);
         }
         this.mafiaVindicators.put(uuid, new HashSet(vinds));
-        player.sendMessage("\u00a76" + count + " " + name + "\u00a76s summoned \u2014 they only attack what you fight!");
     }
 
     public Set<Entity> getMafiaVindicators(UUID uuid) {
@@ -1021,7 +996,6 @@ public class AbilityManager {
 
     private void pirateAbility1(Player p) {
         p.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, this.cfgTicks("daggers.pirate.ability1.duration-seconds", 15.0), this.cfgI("daggers.pirate.ability1.amplifier", 0)));
-        p.sendMessage("\u00a79Dolphin's Grace activated!");
     }
 
     private void pirateAbility2(final Player p) {
@@ -1056,7 +1030,6 @@ public class AbilityManager {
                 front.getWorld().spawnParticle(Particle.FALLING_WATER, front, 36, 0.8, 0.5, 0.8, 0.0);
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
-        p.sendMessage("\u00a79Wave released!");
     }
 
     private void voidAbility1(Player p) {
@@ -1070,7 +1043,6 @@ public class AbilityManager {
         }
         p.teleport(target);
         p.getWorld().spawnParticle(Particle.PORTAL, p.getLocation(), 90, 0.5, 1.0, 0.5, 0.5);
-        p.sendMessage("\u00a75Phased through!");
     }
 
     private void voidAbility2(final Player p) {
@@ -1085,7 +1057,6 @@ public class AbilityManager {
         p.setAllowFlight(true);
         p.setFlying(true);
         long returnSec = (long)this.cfgD("daggers.void.ability2.return-seconds", 300.0);
-        p.sendMessage("\u00a75Saved position. Use Ability 2 again within " + returnSec + "s to return.");
         new BukkitRunnable(){
 
             public void run() {
@@ -1099,7 +1070,6 @@ public class AbilityManager {
                         p.setAllowFlight(false);
                     }
                     p.setFlying(false);
-                    p.sendMessage("\u00a75Your saved Void position has expired. (No teleport, no cooldown.)");
                 }
             }
         }.runTaskLater((Plugin)this.plugin, returnSec * 20L);
@@ -1118,7 +1088,6 @@ public class AbilityManager {
         }
         p.setFlying(false);
         p.teleport(entry.returnLocation);
-        p.sendMessage("\u00a75Returned to your saved state.");
         this.plugin.getCooldownManager().setCooldown(p.getUniqueId(), DaggerType.VOID, 2);
     }
 
@@ -1134,13 +1103,11 @@ public class AbilityManager {
         for (PotionEffectType t : chosen) {
             p.addPotionEffect(new PotionEffect(t, dur, amp));
         }
-        p.sendMessage("\u00a7eLucky! " + chosen.size() + " random buffs applied.");
     }
 
     private void mirrorAbility1(final Player p) {
         long ticks = this.cfgTicks("daggers.mirror.ability1.full-reflect-duration-seconds", 10.0);
         p.setMetadata("dagger_mirror_full_reflect", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a77Damage reflection active for " + ticks / 20L + "s (" + (int)(this.cfgD("daggers.mirror.ability1.reflect-percent", 0.25) * 100.0) + "% reflected)!");
         new BukkitRunnable(){
 
             public void run() {
@@ -1164,15 +1131,12 @@ public class AbilityManager {
             target = tp;
         }
         if (target == null) {
-            p.sendMessage("\u00a7cNo untrusted player nearby!");
             return;
         }
         Location a = p.getLocation().clone();
         Location b = target.getLocation().clone();
         p.teleport(b);
         target.teleport(a);
-        p.sendMessage("\u00a77Swapped positions with " + target.getName() + "!");
-        target.sendMessage("\u00a77You were swapped by " + p.getName() + "!");
     }
 
     private void jungleAbility1(final Player p) {
@@ -1188,12 +1152,10 @@ public class AbilityManager {
         } else {
             RayTraceResult blockHit = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getLocation().getDirection(), range);
             if (blockHit == null || blockHit.getHitPosition() == null) {
-                p.sendMessage("\u00a7cNo grapple target within " + (int)range + " blocks!");
                 return;
             }
             targetLoc = blockHit.getHitPosition().toLocation(p.getWorld());
         }
-        p.sendMessage("\u00a72Grappling!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_THROW, 1.0f, 1.2f);
         final Particle.DustOptions vineGreen = new Particle.DustOptions(Color.fromRGB(40, 160, 50), 0.9f);
         final Particle.DustOptions vineLeaf  = new Particle.DustOptions(Color.fromRGB(110, 210, 90), 0.7f);
@@ -1203,7 +1165,6 @@ public class AbilityManager {
             public void run() {
                 ++this.ticks;
                 if (!p.isOnline() || (long)this.ticks > timeoutSec * 20L) {
-                    p.sendMessage("\u00a7cGrapple cancelled.");
                     this.cancel();
                     return;
                 }
@@ -1232,7 +1193,6 @@ public class AbilityManager {
                 double dist = to.length();
                 if (dist < 1.5) {
                     p.setVelocity(new Vector(0.0, 0.2, 0.0));
-                    p.sendMessage("\u00a72Grapple landed!");
                     this.cancel();
                     return;
                 }
@@ -1251,7 +1211,6 @@ public class AbilityManager {
         final Location start = p.getEyeLocation();
         final Vector dir = start.getDirection().normalize();
         p.getWorld().playSound(start, Sound.BLOCK_GRASS_BREAK, 1.2f, 1.4f);
-        p.sendMessage("\u00a72Vine launched!");
         new BukkitRunnable() {
             double dist = 0.0;
             public void run() {
@@ -1278,7 +1237,6 @@ public class AbilityManager {
                         le.addPotionEffect(new PotionEffect(PotionEffectType.POISON, poisonDur, poisonAmp));
                         le.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, le.getLocation().add(0.0, 1.0, 0.0), 45, 0.4, 0.5, 0.4, 0.0);
                         le.getWorld().playSound(le.getLocation(), Sound.BLOCK_VINE_BREAK, 1.0f, 1.0f);
-                        p.sendMessage("\u00a72Vine pulled " + le.getName() + "!");
                         this.cancel();
                         return;
                     }
@@ -1289,7 +1247,6 @@ public class AbilityManager {
 
     private void midasAbility1(Player p) {
         p.setMetadata("dagger_midas_next_hit", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a76Midas's touch primed \u2014 next hit alters armor protection!");
     }
 
     private void midasAbility2(Player p) {
@@ -1300,9 +1257,7 @@ public class AbilityManager {
             Player tp = (Player)e;
             if (!this.plugin.getTrustManager().isTrusted(p.getUniqueId(), tp.getUniqueId())) continue;
             upgradeArmorToNetherite(tp);
-            tp.sendMessage("\u00a76" + p.getName() + " upgraded your armor to Netherite!");
         }
-        p.sendMessage("\u00a76Armor upgraded to Netherite!");
     }
 
     private static void upgradeArmorToNetherite(Player p) {
@@ -1378,30 +1333,25 @@ public class AbilityManager {
                 }
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
-        p.sendMessage("\u00a7aPoison cloud released!");
     }
 
     private void toxicAbility2(Player p) {
         p.setMetadata("dagger_toxic_lethal", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a7aNext hit injects lethal poison!");
     }
 
     private void arachnidAbility1(Player p) {
         p.setMetadata("dagger_arachnid_next", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a78The next attack you do will paralyze!");
     }
 
     private void vampireAbility1(final Player p) {
         int dur = this.cfgTicks("daggers.vampire.ability1.duration-seconds", 8.0);
         p.setMetadata("dagger_vampire_heal", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a74Bloodthirst! \u00a77" + (int)(this.cfgD("daggers.vampire.ability1.heal-percent", 0.25) * 100.0) + "% lifesteal for " + dur / 20 + "s.");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WITHER_SHOOT, 1.0f, 1.5f);
         new BukkitRunnable(){
 
             public void run() {
                 if (p.isOnline()) {
                     p.removeMetadata("dagger_vampire_heal", (Plugin)AbilityManager.this.plugin);
-                    p.sendMessage("\u00a74Bloodthirst ended.");
                 }
             }
         }.runTaskLater((Plugin)this.plugin, (long)dur);
@@ -1433,7 +1383,6 @@ public class AbilityManager {
                 }
             }
         }.runTaskLater((Plugin)this.plugin, (long)this.cfgTicks("daggers.gravity.ability1.collapse-delay-seconds", 1.5));
-        p.sendMessage("\u00a75Black hole created!");
     }
 
     private void gravityAbility2(Player p) {
@@ -1446,7 +1395,6 @@ public class AbilityManager {
             if (this.isTrustedEntity(p, e)) continue;
             tp.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, dur, amp));
         }
-        p.sendMessage("\u00a75Levitation applied to nearby untrusted players!");
     }
 
     private void earthAbility1(Player p) {
@@ -1481,7 +1429,6 @@ public class AbilityManager {
             b.setType(Material.AIR);
         }
         this.earthWalls.put(uuid, wall);
-        p.sendMessage("\u00a76Wall raised (" + width + "\u00d7" + height + ")!");
         int durTicks = this.cfgTicks("daggers.earth.ability1.duration-seconds", 10.0);
         new BukkitRunnable(){
 
@@ -1520,7 +1467,6 @@ public class AbilityManager {
             tf.getRightRotation()
         );
         display.setTransformation(tf);
-        p.sendMessage("\u00a76Massive boulder hurled!");
         p.getWorld().playSound(spawnLoc, Sound.ENTITY_RAVAGER_ROAR, 1.4f, 0.7f);
         new BukkitRunnable(){
             int ticks = 0;
@@ -1564,7 +1510,6 @@ public class AbilityManager {
 
     private void titanAbility1(final Player p) {
         p.setMetadata("dagger_titan_grow_next", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a7cNext hit player will grow giant!");
         new BukkitRunnable(){
             int ticks = 0;
 
@@ -1583,7 +1528,6 @@ public class AbilityManager {
         double scale = this.cfgD("daggers.titan.ability2.scale", 0.4);
         this.scalePlayer(p, scale, ticks);
         p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, (int)ticks, this.cfgI("daggers.titan.ability2.speed-amplifier", 2)));
-        p.sendMessage("\u00a7cYou shrunk to " + scale + "x with Speed!");
     }
 
     private void scalePlayer(final Player player, double scale, long durationTicks) {
@@ -1621,7 +1565,6 @@ public class AbilityManager {
         final double knock = this.cfgD("daggers.guardian.ability1.knockback", 0.12);
         final long maxTicks = this.cfgTicks("daggers.guardian.ability1.duration-seconds", 8.0);
         final double maxRange = this.cfgD("daggers.guardian.ability1.range", 30.0);
-        p.sendMessage("\u00a7bGuardian Beam fired!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 2.0f, 1.0f);
         BukkitRunnable beam = new BukkitRunnable(){
             int ticks = 0;
@@ -1705,7 +1648,6 @@ public class AbilityManager {
             if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || this.isTrustedEntity(p, e)) continue;
             le.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, dur, amp));
         }
-        p.sendMessage("\u00a7bMining fatigue applied nearby!");
     }
 
     private void ghostAbility1(final Player p) {
@@ -1716,7 +1658,6 @@ public class AbilityManager {
         p.setFallDistance(0.0f);
         this.windFallDamageImmune.add(p.getUniqueId());
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 1.2f, 1.5f);
-        p.sendMessage("\u00a77Ghost dash!");
         new BukkitRunnable() {
             int t = 0;
             public void run() {
@@ -1740,7 +1681,6 @@ public class AbilityManager {
         p.setInvisible(true);
         p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, (int) ticks + 20, 0, false, false, false));
         p.setMetadata("dagger_ghost_noclip", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a77Ghost form for " + ticks / 20L + "s \u2014 fly through anything!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_VEX_AMBIENT, 1.0f, 0.6f);
         final BukkitRunnable trail = new BukkitRunnable(){
             public void run() {
@@ -1762,7 +1702,6 @@ public class AbilityManager {
                 p.removePotionEffect(PotionEffectType.INVISIBILITY);
                 p.setGameMode(prevMode);
                 p.removeMetadata("dagger_ghost_noclip", (Plugin)AbilityManager.this.plugin);
-                p.sendMessage("\u00a77Ghost form ended.");
             }
         }.runTaskLater((Plugin)this.plugin, ticks);
     }
@@ -1775,7 +1714,6 @@ public class AbilityManager {
             break;
         }
         if (slot < 0) {
-            player.sendMessage("\u00a7cChance Dagger not found!");
             return;
         }
         long ms = (long)(this.cfgD("daggers.chance.ability1.duration-seconds", 20.0) * 1000.0);
@@ -1791,7 +1729,6 @@ public class AbilityManager {
         final UUID uuid = player.getUniqueId();
         this.chanceActiveDagger.put(uuid, picked);
         this.chanceEndTime.put(uuid, System.currentTimeMillis() + ms);
-        player.sendMessage("\u00a7dTransformed into: " + picked.getDisplayName() + " for " + ms / 1000L + "s!");
         new BukkitRunnable(){
 
             public void run() {
@@ -1820,7 +1757,6 @@ public class AbilityManager {
                     // Transformed dagger was lost (dropped/destroyed). Drop a Chance Dagger at the player so they don't lose it permanently.
                     player.getWorld().dropItemNaturally(player.getLocation(), DaggerType.CHANCE.createItem());
                 }
-                player.sendMessage("\u00a7dTransformation ended \u2014 your Chance Dagger returns.");
             }
         }.runTaskLater((Plugin)this.plugin, ms / 50L);
     }
@@ -1828,7 +1764,6 @@ public class AbilityManager {
     private void stormAbility1(Player p) {
         Entity tgt = this.getNearestTarget(p, this.cfgD("daggers.storm.ability1.range", 30.0));
         if (tgt == null) {
-            p.sendMessage("\u00a7cNo target!");
             return;
         }
         double dmg = this.cfgD("daggers.storm.ability1.damage", 6.0);
@@ -1837,7 +1772,6 @@ public class AbilityManager {
             LivingEntity le = (LivingEntity)tgt;
             le.damage(dmg, (Entity)p);
         }
-        p.sendMessage("\u00a7eLightning struck " + tgt.getName() + "!");
     }
 
     private void stormAbility2(final Player p) {
@@ -1846,7 +1780,6 @@ public class AbilityManager {
         final double durSec = this.cfgD("daggers.storm.ability2.duration-seconds", 5.0);
         final long boltIntervalTicks = (long) this.cfgD("daggers.storm.ability2.bolt-interval-ticks", 8.0);
         final Location anchor = p.getLocation().clone();
-        p.sendMessage("\u00a7eStorm summoned \u2014 lightning rains around you for " + (int) durSec + "s!");
         p.getWorld().playSound(anchor, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.5f, 1.0f);
         new BukkitRunnable() {
             int ticks = 0;
@@ -1859,27 +1792,44 @@ public class AbilityManager {
                 }
                 // Re-anchor the storm to the player's CURRENT position so it follows them.
                 Location center = p.isOnline() ? p.getLocation() : anchor;
-                double angle = AbilityManager.this.random.nextDouble() * Math.PI * 2.0;
-                double dist = AbilityManager.this.random.nextDouble() * radius;
-                double dx = Math.cos(angle) * dist;
-                double dz = Math.sin(angle) * dist;
-                Location strike = center.clone().add(dx, 0, dz);
-                // Find the highest non-passable block underfoot so the bolt grounds correctly.
-                int sy = strike.getBlockY();
-                for (int y = sy + 6; y >= sy - 8; --y) {
-                    Location probe = new Location(strike.getWorld(), strike.getX(), y, strike.getZ());
-                    if (!probe.getBlock().isPassable()) {
-                        strike = new Location(strike.getWorld(), strike.getX(), y + 1, strike.getZ());
-                        break;
+                // Prefer striking ON a nearby valid target so the bolt actually deals damage.
+                java.util.List<LivingEntity> candidates = new java.util.ArrayList<LivingEntity>();
+                for (Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
+                    if (!(e instanceof LivingEntity)) continue;
+                    LivingEntity le = (LivingEntity) e;
+                    if (le == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                    candidates.add(le);
+                }
+                LivingEntity target = null;
+                Location strike;
+                if (!candidates.isEmpty()) {
+                    target = candidates.get(AbilityManager.this.random.nextInt(candidates.size()));
+                    strike = target.getLocation().clone();
+                } else {
+                    double angle = AbilityManager.this.random.nextDouble() * Math.PI * 2.0;
+                    double dist = AbilityManager.this.random.nextDouble() * radius;
+                    strike = center.clone().add(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+                    int sy = strike.getBlockY();
+                    for (int y = sy + 6; y >= sy - 8; --y) {
+                        Location probe = new Location(strike.getWorld(), strike.getX(), y, strike.getZ());
+                        if (!probe.getBlock().isPassable()) {
+                            strike = new Location(strike.getWorld(), strike.getX(), y + 1, strike.getZ());
+                            break;
+                        }
                     }
                 }
                 strike.getWorld().strikeLightningEffect(strike);
                 strike.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, strike, 40, 0.6, 0.4, 0.6, 0.2);
                 strike.getWorld().spawnParticle(Particle.FLASH, strike, 1, 0.0, 0.0, 0.0, 0.0);
-                for (Entity e : strike.getWorld().getNearbyEntities(strike, 2.5, 3.0, 2.5)) {
-                    LivingEntity le;
-                    if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
-                    le.damage(dmg, (Entity) p);
+                if (target != null && target.isValid() && !target.isDead()) {
+                    target.setNoDamageTicks(0);
+                    target.damage(dmg, (Entity) p);
+                } else {
+                    for (Entity e : strike.getWorld().getNearbyEntities(strike, 2.5, 3.0, 2.5)) {
+                        LivingEntity le;
+                        if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                        le.damage(dmg, (Entity) p);
+                    }
                 }
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, boltIntervalTicks);

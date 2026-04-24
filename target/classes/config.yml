@@ -42,7 +42,7 @@ daggers:
       no-fall-damage: true
     ability1:
       cooldown-seconds: 20
-      dash-blocks: 35.0
+      dash-blocks: 20.0
       fall-immune-seconds: 10
     ability2:
       cooldown-seconds: 50
@@ -201,7 +201,7 @@ daggers:
     ability1:
       cooldown-seconds: 120
       full-reflect-duration-seconds: 10
-      reflect-percent: 0.25  # 25% of damage reflected back
+      reflect-percent: 0.5  # 50% of damage reflected back to the attacker
     ability2:
       cooldown-seconds: 30
       swap-radius: 5.0
@@ -289,10 +289,17 @@ daggers:
   gravity:
     craft-limit: 1
     passive:
-      min-fall-blocks: 6.0
+      # Player takes ZERO fall damage; from 10+ blocks, an explosion erupts on landing.
+      min-fall-blocks: 10.0
       shockwave-radius: 5.0
-      damage-per-block: 0.5
+      # 0.20 hearts per block fallen, capped at 5 hearts (10.0 damage).
+      damage-per-block: 0.4
       max-damage: 10.0
+      # Explosion gets bigger the higher you fall from.
+      explosion-power-base: 1.5
+      explosion-power-per-block: 0.08
+      explosion-power-max: 6.0
+      explosion-break-blocks: false
     ability1:
       cooldown-seconds: 90
       pull-radius: 10.0
@@ -314,7 +321,7 @@ daggers:
       cooldown-seconds: 30
       width: 4
       height: 3
-      material: STONE
+      material: OBSIDIAN
       duration-seconds: 10
     ability2:
       cooldown-seconds: 60

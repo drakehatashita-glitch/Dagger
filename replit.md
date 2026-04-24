@@ -7,24 +7,31 @@ A Minecraft Paper plugin (Java 21, Paper API 1.21) providing custom dagger abili
 - `src/main/resources/plugin.yml` — Bukkit plugin descriptor
 - `src/main/resources/config.yml` — runtime config
 - `pom.xml` — Maven build (Paper API 1.21.11-R0.1-SNAPSHOT, Java 21)
-- `DaggerSMP-2.2.0.jar` — prebuilt plugin jar (canonical build)
-- `server/` — Paper server runtime
-  - `paper.jar` — Paper 1.21.8 server (upgraded from 1.21.1 to support `CREAKING_HEART` / `DRIED_GHAST` materials referenced by the plugin)
-  - `plugins/DaggerSMP-2.2.0.jar` — installed plugin
-  - `eula.txt`, `server.properties`, world data
-
-## Running
-The "Start application" workflow runs the Paper server:
-```
-cd server && java -Xms512M -Xmx1G -jar paper.jar nogui
-```
-The Minecraft server listens on port 25565 (default). It is not a web application — there is no HTTP frontend.
+- `DaggerSMP-2.2.0.jar` — prebuilt plugin jar (canonical build, target Paper 1.21.11)
+- `DaggerSMP-TexturePack/` — resource pack (`pack_format` 80, advertised as 1.21.11)
 
 ## Build
-The decompiled source has been touched up to compile cleanly. The freshly built jar lands at `target/DaggerSMP-2.2.0.jar`:
+This project is plugin/texture pack development only — no server is run from this Repl.
+The freshly built jar lands at `target/DaggerSMP-2.2.0.jar` and is also copied to the project root:
 ```
 mvn -B clean package
+cp target/DaggerSMP-2.2.0.jar DaggerSMP-2.2.0.jar
 ```
+Drop `DaggerSMP-2.2.0.jar` into your own Paper 1.21.11 server's `plugins/` folder.
+
+## v2.2.0 follow-up fixes (April 24, 2026 — round 3)
+- **Target = Paper 1.21.11.** `pom.xml` already builds against `paper-api 1.21.11-R0.1-SNAPSHOT`; the texture pack `pack.mcmeta` advertises 1.21.11.
+- **No server runs from this Repl** — this is plugin/texture pack development only. Build with `mvn -B clean package`.
+- **Earth A1 — wall = OBSIDIAN.** `daggers.earth.ability1.material` corrected from `STONE` to `OBSIDIAN` in `config.yml` (code default was already OBSIDIAN).
+- **Storm A2 — lightning rain now actually hits.** Each bolt now picks a random valid living entity within `radius` and strikes ON top of them, dealing exactly `daggers.storm.ability2.damage` (default `4.0` = 2 hearts). When no targets are nearby it falls back to the old random-spot strike for visuals.
+- **Gravity passive — fully rewritten.**
+  - Wearer now takes **zero** fall damage (the fall damage event is cancelled).
+  - At `min-fall-blocks` (default `10`) or higher, an explosion erupts at the landing point.
+  - Damage scales at `damage-per-block` (default `0.4` = 0.20 hearts/block) up to `max-damage` (default `10.0` = 5 hearts).
+  - Explosion power grows with fall distance: `explosion-power-base` (1.5) + `(fallDist - minFall) * explosion-power-per-block` (0.08), clamped to `explosion-power-max` (6.0). Bigger fall → bigger boom.
+- **Mirror A1 — reflection actually works.** Now reflects on any `EntityDamageByEntityEvent`, including mob attacks and projectiles (resolves projectile shooter to the firing entity). Reflects `daggers.mirror.ability1.reflect-percent` (now defaulting to `0.5` = 50%). Pure environmental damage (FALL, LAVA, FIRE, DROWNING, …) is **not** reflected to anything because it isn't an entity-caused event. Reflected damage bypasses i-frames so it always lands.
+- **Wind A1 — dash retuned.** `dash-blocks` lowered from `35.0` to `20.0` and the dash now follows the player's full look direction (X/Y/Z) — you can dash up or down by aiming there. The previous code zeroed-out vertical aim and only dashed horizontally.
+- **All ability/passive chat spam removed.** Every `*.sendMessage(...)` call inside `AbilityManager.java` and the ability/passive paths in `DaggerListener.java` was deleted, including cooldown notices, "ability activated" toasts, and passive triggers like "Dodged!" / "Lucky! Saved from death." `/dagger` admin command output (give/list/cooldown/reload) is preserved.
 
 ## v2.2.0 follow-up fixes (April 24, 2026 — round 2)
 - **Texture pack — bigger daggers + correct first-person orientation.** All 25 dagger models now extend a new `daggersmp:item/dagger_base` parent that defines explicit display transforms: ~2.4× scale in first person and ~1.35× in third person, plus a Y-axis rotation flip in first person so the blade points away from the player instead of back toward them.

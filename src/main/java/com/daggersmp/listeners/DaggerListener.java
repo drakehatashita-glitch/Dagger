@@ -197,7 +197,6 @@ implements Listener {
                     tp.getInventory().setArmorContents(armor);
                     break;
                 }
-                tp.sendMessage("\u00a7cYour armor took heavy damage!");
             }
         }
         if (p.hasMetadata("dagger_crimson_wither_next")) {
@@ -224,7 +223,6 @@ implements Listener {
             int delta = trusted ? this.plugin.getConfig().getInt("daggers.midas.ability1.trusted-protection-increase", 1) : -this.plugin.getConfig().getInt("daggers.midas.ability1.enemy-protection-decrease", 2);
             int dur = (int)(this.plugin.getConfig().getDouble("daggers.midas.ability1." + (trusted ? "trusted" : "enemy") + "-duration-seconds", 3.0) * 20.0);
             this.modifyArmorProtection(midasTp, delta, dur);
-            midasTp.sendMessage(trusted ? "\u00a76Midas blessing: +" + delta + " protection for " + dur / 20 + "s!" : "\u00a76Midas curse: " + delta + " protection for " + dur / 20 + "s!");
         }
         if (p.hasMetadata("dagger_toxic_lethal")) {
             p.removeMetadata("dagger_toxic_lethal", (Plugin)this.plugin);
@@ -245,7 +243,6 @@ implements Listener {
             Player titanTp = (Player)target;
             p.removeMetadata("dagger_titan_grow_next", (Plugin)this.plugin);
             this.applyScale(titanTp, this.plugin.getConfig().getDouble("daggers.titan.ability1.grow-scale", 2.5), (int)(this.plugin.getConfig().getDouble("daggers.titan.ability1.grow-duration-seconds", 5.0) * 20.0));
-            titanTp.sendMessage("\u00a7cYou were enlarged by " + p.getName() + "!");
         }
         if (p.hasMetadata("dagger_vampire_heal") && target instanceof Player) {
             double pct = this.plugin.getConfig().getDouble("daggers.vampire.ability1.heal-percent", 0.25);
@@ -282,7 +279,6 @@ implements Listener {
                             vTgt.damage(tickDmg, (Entity)owner);
                         }
                     }.runTaskTimer((Plugin)this.plugin, 0L, 20L);
-                    vTgt.sendMessage("\u00a74You're bleeding!");
                 }
             }
         }
@@ -313,7 +309,6 @@ implements Listener {
                 voidTp.setMetadata("dagger_void_passive_cd", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
                 Location behind = p.getLocation().clone().add(p.getLocation().getDirection().multiply(-2));
                 voidTp.teleport(behind);
-                voidTp.sendMessage("\u00a75Void teleport!");
                 new BukkitRunnable(){
 
                     public void run() {
@@ -343,9 +338,6 @@ implements Listener {
 
     @EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
     public void onDamage(EntityDamageEvent e) {
-        Player attacker;
-        EntityDamageByEntityEvent ed;
-        Entity damagerEntity;
         Entity entity = e.getEntity();
         if (!(entity instanceof Player)) {
             return;
@@ -362,15 +354,20 @@ implements Listener {
                 return;
             }
             if (am.hasDaggerAnywhere(p, DaggerType.GRAVITY)) {
-                e.setDamage(e.getDamage() * 0.5);
-                double minFall = this.plugin.getConfig().getDouble("daggers.gravity.passive.min-fall-blocks", 6.0);
-                if ((double)p.getFallDistance() >= minFall) {
+                double fallDist = (double) p.getFallDistance();
+                double minFall = this.plugin.getConfig().getDouble("daggers.gravity.passive.min-fall-blocks", 10.0);
+                if (fallDist >= minFall) {
                     double radius2 = this.plugin.getConfig().getDouble("daggers.gravity.passive.shockwave-radius", 5.0);
-                    double dmgPerBlock = this.plugin.getConfig().getDouble("daggers.gravity.passive.damage-per-block", 0.5);
+                    // 0.20 hearts = 0.4 damage per block fallen, capped at 5 hearts (10.0 damage).
+                    double dmgPerBlock = this.plugin.getConfig().getDouble("daggers.gravity.passive.damage-per-block", 0.4);
                     double maxDmg = this.plugin.getConfig().getDouble("daggers.gravity.passive.max-damage", 10.0);
-                    double dmg = Math.min(maxDmg, (double)p.getFallDistance() * dmgPerBlock);
+                    double dmg = Math.min(maxDmg, fallDist * dmgPerBlock);
                     Location impact = p.getLocation();
-                    float power = (float) this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power", 2.5);
+                    // Explosion grows with fall distance: bigger fall -> bigger boom.
+                    double basePower = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-base", 1.5);
+                    double powerPerBlock = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-per-block", 0.08);
+                    double maxPower = this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power-max", 6.0);
+                    float power = (float) Math.min(maxPower, basePower + (fallDist - minFall) * powerPerBlock);
                     boolean breakBlocks = this.plugin.getConfig().getBoolean("daggers.gravity.passive.explosion-break-blocks", false);
                     impact.getWorld().createExplosion(impact, power, false, breakBlocks, p);
                     impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 3, 0.6, 0.2, 0.6, 0.0);
@@ -384,11 +381,13 @@ implements Listener {
                         le.setVelocity(kb);
                     }
                 }
+                // Wearer takes ZERO fall damage with the Gravity dagger.
+                e.setCancelled(true);
+                return;
             }
         }
         if (am.hasDaggerAnywhere(p, DaggerType.GHOST) && Math.random() < this.plugin.getConfig().getDouble("daggers.ghost.passive.dodge-chance", 0.1)) {
             e.setCancelled(true);
-            p.sendMessage("\u00a77Dodged!");
             return;
         }
         if (am.hasDaggerAnywhere(p, DaggerType.LUCKY) && e.getFinalDamage() >= p.getHealth() && Math.random() < this.plugin.getConfig().getDouble("daggers.lucky.passive.totem-chance", 0.2)) {
@@ -397,16 +396,37 @@ implements Listener {
             p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 2));
             p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 200, 2));
             p.getWorld().playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 1.0f, 1.0f);
-            p.sendMessage("\u00a7eLucky! Saved from death.");
         }
         if (am.hasDaggerAnywhere(p, DaggerType.TOXIC) && this.plugin.getConfig().getBoolean("daggers.toxic.passive.poison-immunity", true) && e.getCause() == EntityDamageEvent.DamageCause.POISON) {
             e.setCancelled(true);
             return;
         }
-        if (p.hasMetadata("dagger_mirror_full_reflect") && e instanceof EntityDamageByEntityEvent && (damagerEntity = (ed = (EntityDamageByEntityEvent)e).getDamager()) instanceof Player && (attacker = (Player)damagerEntity) != p) {
-            double pct = this.plugin.getConfig().getDouble("daggers.mirror.ability1.reflect-percent", 0.25);
-            double back = e.getDamage() * pct;
-            attacker.damage(back, (Entity)p);
+        // Mirror A1: while active, reflect a percentage of damage back to the LIVING attacker.
+        // Pure environmental damage (fall, lava, fire, drowning, etc.) is not an EntityDamageByEntityEvent
+        // and therefore is intentionally skipped here — it should NOT be reflected to anything.
+        if (p.hasMetadata("dagger_mirror_full_reflect") && e instanceof EntityDamageByEntityEvent) {
+            EntityDamageByEntityEvent ed2 = (EntityDamageByEntityEvent) e;
+            Entity rawDamager = ed2.getDamager();
+            // Resolve projectile shooter to the actual living entity that fired it.
+            LivingEntity attackerLe = null;
+            if (rawDamager instanceof org.bukkit.entity.Projectile) {
+                org.bukkit.projectiles.ProjectileSource src = ((org.bukkit.entity.Projectile) rawDamager).getShooter();
+                if (src instanceof LivingEntity) attackerLe = (LivingEntity) src;
+            } else if (rawDamager instanceof LivingEntity) {
+                attackerLe = (LivingEntity) rawDamager;
+            }
+            if (attackerLe != null && attackerLe != p) {
+                double pct = this.plugin.getConfig().getDouble("daggers.mirror.ability1.reflect-percent", 0.5);
+                double back = e.getDamage() * pct;
+                if (back > 0.0) {
+                    attackerLe.setNoDamageTicks(0);
+                    double before = attackerLe.getHealth();
+                    attackerLe.damage(back, (Entity) p);
+                    if (attackerLe.getHealth() >= before - 0.01) {
+                        attackerLe.setHealth(Math.max(0.0, before - back));
+                    }
+                }
+            }
         }
         if (p.hasMetadata("dagger_guardian_beam_active")) {
             am.cancelGuardianBeamIfHit(p);
