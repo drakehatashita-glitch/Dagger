@@ -24,6 +24,7 @@ com/daggersmp/managers/AbilityManager$13.class
 com/daggersmp/listeners/DaggerListener$5.class
 com/daggersmp/managers/CooldownManager.class
 com/daggersmp/managers/AbilityManager$1.class
+com/daggersmp/managers/AbilityManager$33.class
 com/daggersmp/managers/AbilityManager$28.class
 com/daggersmp/managers/VoidStateManager$VoidEntry.class
 com/daggersmp/daggers/DaggerType.class
@@ -35,6 +36,7 @@ com/daggersmp/managers/AbilityManager$16.class
 com/daggersmp/managers/AbilityManager$26.class
 com/daggersmp/managers/AbilityManager$19.class
 com/daggersmp/managers/AbilityManager$29.class
+com/daggersmp/managers/AbilityManager$32.class
 com/daggersmp/commands/TrustCommand.class
 com/daggersmp/managers/AbilityManager.class
 com/daggersmp/managers/AbilityManager$2.class
