@@ -6,6 +6,48 @@ uri = "file://attached_assets/generated_images/dagger_master.png"
 type = "image"
 title = "fantasy dagger master template"
 
+[[generated]]
+id = "gquFfB2URACZEOJiU9lMc"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_strength.png"
+type = "image"
+title = "strength dagger"
+
+[[generated]]
+id = "khqaTygb9vh8i8aQ0dBAc"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_wind.png"
+type = "image"
+title = "wind dagger"
+
+[[generated]]
+id = "tg7YocYx7hOF-Czwa6hqQ"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_life.png"
+type = "image"
+title = "life dagger"
+
+[[generated]]
+id = "8GfFfr4xBHa4YwODfdKCx"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_crimson.png"
+type = "image"
+title = "crimson dagger"
+
+[[generated]]
+id = "zTAebt6TdhHRQ-tRj8kqs"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_darkness.png"
+type = "image"
+title = "darkness dagger"
+
+[[generated]]
+id = "9fwMVYx91vyKY2WN9Z5w_"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_hack.png"
+type = "image"
+title = "hack dagger"
+
+[[generated]]
+id = "mg0vlUUSnx-5jcsF6XPcp"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_frost.png"
+type = "image"
+title = "frost dagger"
+
 [[outputs]]
 id = "BE8fbNiPJJUtI4yXMcL6V"
 uri = "file://DaggerSMP-TexturePack.zip"
@@ -59,3 +101,27 @@ id = "CadNOgSaaqo5VVqYM3Jcw"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/storm.png"
 type = "image"
 title = "Storm dagger texture (256×256 PNG)"
+
+[[outputs]]
+id = "4ZX7BA2jZFDaZtoViVOln"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_strength.png"
+type = "image"
+title = "Strength dagger - red/orange might"
+
+[[outputs]]
+id = "NSl42pyT8KP_BMKXiwlP6"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_darkness.png"
+type = "image"
+title = "Darkness dagger - purple shadow"
+
+[[outputs]]
+id = "k5sei6exU73NeRq1_3uiR"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_hack.png"
+type = "image"
+title = "Hack dagger - matrix green"
+
+[[outputs]]
+id = "OSN4uIyNHnTdCkY9TEmI9"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_life.png"
+type = "image"
+title = "Life dagger - green/pink hearts"
