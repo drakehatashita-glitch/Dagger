@@ -224,9 +224,18 @@ public class AbilityManager {
         if (this.hasDaggerAnywhere(p, DaggerType.PIRATE)) {
             this.addPerm(p, PotionEffectType.WATER_BREATHING, this.cfgI("daggers.pirate.passive.water-breathing-amplifier", 0));
         }
-        if (this.hasDaggerAnywhere(p, DaggerType.VOID)) {
+        boolean hasVoid = this.hasDaggerAnywhere(p, DaggerType.VOID);
+        if (hasVoid) {
             this.addPerm(p, PotionEffectType.SPEED, this.cfgI("daggers.void.passive.speed-amplifier", 1));
             this.addPerm(p, PotionEffectType.STRENGTH, this.cfgI("daggers.void.passive.strength-amplifier", 0));
+        } else if (p.hasMetadata("dagger_void_had_passive")) {
+            p.removePotionEffect(PotionEffectType.SPEED);
+            p.removePotionEffect(PotionEffectType.STRENGTH);
+            p.removeMetadata("dagger_void_had_passive", (Plugin)this.plugin);
+            if (p.hasMetadata("dagger_void_passive_cd")) p.removeMetadata("dagger_void_passive_cd", (Plugin)this.plugin);
+        }
+        if (hasVoid && !p.hasMetadata("dagger_void_had_passive")) {
+            p.setMetadata("dagger_void_had_passive", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
         }
         if (this.hasDaggerAnywhere(p, DaggerType.LUCKY)) {
             this.addPerm(p, PotionEffectType.HERO_OF_THE_VILLAGE, this.cfgI("daggers.lucky.passive.hero-amplifier", 0));
@@ -758,6 +767,7 @@ public class AbilityManager {
         double hearts = this.cfgD("daggers.life.ability1.steal-hearts", 3.0);
         double radius = this.cfgD("daggers.life.ability1.radius", 5.0);
         long durMs = (long)(this.cfgD("daggers.life.ability1.extra-health-duration-seconds", 10.0) * 1000.0);
+        double dmg = hearts * 2.0;
         int hits = 0;
         UUID uuid = p.getUniqueId();
         Map sources = this.lifeStealActiveBonus.computeIfAbsent(uuid, k -> new HashMap());
@@ -765,7 +775,13 @@ public class AbilityManager {
             if (!(e instanceof Player)) continue;
             Player tp = (Player)e;
             if (this.isTrustedEntity(p, e)) continue;
-            tp.damage(hearts * 2.0, (Entity)p);
+            tp.setNoDamageTicks(0);
+            double before = tp.getHealth();
+            tp.damage(dmg, (Entity)p);
+            if (tp.getHealth() >= before - 0.01) {
+                tp.setHealth(Math.max(0.0, before - dmg));
+            }
+            tp.getWorld().spawnParticle(Particle.HEART, tp.getLocation().add(0.0, 1.5, 0.0), 5, 0.3, 0.3, 0.3, 0.0);
             sources.put(tp.getUniqueId(), System.currentTimeMillis() + durMs);
             ++hits;
         }
@@ -873,31 +889,78 @@ public class AbilityManager {
 
     private void hackAbility2(final Player p) {
         long ticks = this.cfgTicks("daggers.hack.ability2.hitbox-duration-seconds", 5.0);
+        final double bonus = this.cfgD("daggers.hack.ability2.reach-bonus", 3.0);
+        final NamespacedKey key = new NamespacedKey("daggersmp", "hack_reach");
+        final NamespacedKey key2 = new NamespacedKey("daggersmp", "hack_reach_block");
+        AttributeInstance reach = p.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
+        AttributeInstance breach = p.getAttribute(Attribute.BLOCK_INTERACTION_RANGE);
+        if (reach != null) {
+            for (AttributeModifier m : new ArrayList<AttributeModifier>(reach.getModifiers())) {
+                if (m.getKey().equals((Object)key)) reach.removeModifier(m);
+            }
+            reach.addModifier(new AttributeModifier(key, bonus, AttributeModifier.Operation.ADD_NUMBER));
+        }
+        if (breach != null) {
+            for (AttributeModifier m : new ArrayList<AttributeModifier>(breach.getModifiers())) {
+                if (m.getKey().equals((Object)key2)) breach.removeModifier(m);
+            }
+            breach.addModifier(new AttributeModifier(key2, bonus, AttributeModifier.Operation.ADD_NUMBER));
+        }
         p.setMetadata("dagger_hack_hitbox", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a72Player hitboxes effectively expanded for " + ticks / 20L + "s!");
+        p.sendMessage("\u00a72Hack reach +" + bonus + " for " + ticks / 20L + "s!");
         new BukkitRunnable(){
-
             public void run() {
                 if (p.isOnline()) {
                     p.removeMetadata("dagger_hack_hitbox", (Plugin)AbilityManager.this.plugin);
                 }
+                AttributeInstance r = p.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
+                AttributeInstance b = p.getAttribute(Attribute.BLOCK_INTERACTION_RANGE);
+                if (r != null) for (AttributeModifier m : new ArrayList<AttributeModifier>(r.getModifiers())) if (m.getKey().equals((Object)key)) r.removeModifier(m);
+                if (b != null) for (AttributeModifier m : new ArrayList<AttributeModifier>(b.getModifiers())) if (m.getKey().equals((Object)key2)) b.removeModifier(m);
             }
         }.runTaskLater((Plugin)this.plugin, ticks);
     }
 
-    private void frostAbility1(Player p) {
+    private void frostAbility1(final Player p) {
         double radius = this.cfgD("daggers.frost.ability1.radius", 5.0);
-        int dur = this.cfgTicks("daggers.frost.ability1.freeze-duration-seconds", 5.0);
+        final int dur = this.cfgTicks("daggers.frost.ability1.freeze-duration-seconds", 5.0);
+        final java.util.List<LivingEntity> frozen = new ArrayList<LivingEntity>();
+        final java.util.Map<java.util.UUID, Location> anchors = new java.util.HashMap<java.util.UUID, Location>();
         for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
             LivingEntity le;
             if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || this.isTrustedEntity(p, e)) continue;
-            le.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, dur, this.cfgI("daggers.frost.ability1.slowness-amplifier", 6)));
-            le.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, dur, this.cfgI("daggers.frost.ability1.mining-fatigue-amplifier", 2)));
-            le.setFreezeTicks(dur);
-            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 10, 0.3, 0.3, 0.3, 0.0);
+            le.setFreezeTicks(dur + 60);
+            anchors.put(le.getUniqueId(), le.getLocation().clone());
+            frozen.add(le);
+            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 12, 0.3, 0.5, 0.3, 0.0);
+        }
+        if (!frozen.isEmpty()) {
+            new BukkitRunnable() {
+                int t = 0;
+                public void run() {
+                    if (++t > dur) { this.cancel(); return; }
+                    for (LivingEntity le : frozen) {
+                        if (!le.isValid() || le.isDead()) continue;
+                        Location anc = anchors.get(le.getUniqueId());
+                        if (anc == null) continue;
+                        le.setVelocity(new Vector(0, 0, 0));
+                        Location cur = le.getLocation();
+                        if (cur.distanceSquared(anc) > 0.04) {
+                            Location back = anc.clone();
+                            back.setYaw(cur.getYaw());
+                            back.setPitch(cur.getPitch());
+                            le.teleport(back);
+                        }
+                        le.setFreezeTicks(Math.max(le.getFreezeTicks(), 200));
+                        if (t % 6 == 0) {
+                            le.getWorld().spawnParticle(Particle.SNOWFLAKE, le.getLocation().add(0.0, 1.0, 0.0), 3, 0.2, 0.4, 0.2, 0.0);
+                        }
+                    }
+                }
+            }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
         }
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_POWDER_SNOW_PLACE, 2.0f, 1.0f);
-        p.sendMessage("\u00a73Nearby enemies frozen!");
+        p.sendMessage("\u00a73Nearby enemies frozen in place!");
     }
 
     private void frostAbility2(Player p) {
@@ -961,17 +1024,38 @@ public class AbilityManager {
         p.sendMessage("\u00a79Dolphin's Grace activated!");
     }
 
-    private void pirateAbility2(Player p) {
-        double pushBlocks = this.cfgD("daggers.pirate.ability2.push-blocks", 25.0);
-        double radius = this.cfgD("daggers.pirate.ability2.radius", 8.0);
+    private void pirateAbility2(final Player p) {
+        final double pushBlocks = this.cfgD("daggers.pirate.ability2.push-blocks", 25.0);
+        final double radius = this.cfgD("daggers.pirate.ability2.radius", 8.0);
         for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
             LivingEntity le;
             if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || this.isTrustedEntity(p, e)) continue;
             Vector away = e.getLocation().toVector().subtract(p.getLocation().toVector()).setY(0).normalize().multiply(pushBlocks * 0.1);
             le.setVelocity(away.setY(0.4));
         }
-        p.getWorld().spawnParticle(Particle.SPLASH, p.getLocation(), 80, radius * 0.5, 0.5, radius * 0.5, 0.5);
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GENERIC_SPLASH, 1.5f, 0.8f);
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GENERIC_SPLASH, 1.6f, 0.7f);
+        p.getWorld().playSound(p.getLocation(), Sound.WEATHER_RAIN, 1.0f, 1.4f);
+        final Location origin = p.getLocation().clone();
+        final Vector forward = p.getLocation().getDirection().setY(0).normalize();
+        new BukkitRunnable() {
+            int t = 0;
+            public void run() {
+                t++;
+                if (t > 14) { this.cancel(); return; }
+                double r = t * 0.6;
+                int steps = (int) Math.max(20, r * 14);
+                for (int i = 0; i < steps; i++) {
+                    double a = (Math.PI * 2 * i) / steps;
+                    Location pt = origin.clone().add(Math.cos(a) * r, 0.4 + Math.sin(t * 0.5) * 0.2, Math.sin(a) * r);
+                    pt.getWorld().spawnParticle(Particle.SPLASH, pt, 2, 0.05, 0.2, 0.05, 0.0);
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, (Object) new Particle.DustOptions(Color.fromRGB(80, 160, 255), 1.6f));
+                    if (i % 4 == 0) pt.getWorld().spawnParticle(Particle.BUBBLE_POP, pt, 1, 0.05, 0.1, 0.05, 0.0);
+                }
+                Location front = origin.clone().add(forward.clone().multiply(r * 0.6)).add(0, 1.0, 0);
+                front.getWorld().spawnParticle(Particle.DRIPPING_WATER, front, 8, 0.6, 0.4, 0.6, 0.0);
+                front.getWorld().spawnParticle(Particle.FALLING_WATER, front, 12, 0.8, 0.5, 0.8, 0.0);
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
         p.sendMessage("\u00a79Wave released!");
     }
 
@@ -1137,23 +1221,48 @@ public class AbilityManager {
         }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
-    private void jungleAbility2(Player p) {
-        double range = this.cfgD("daggers.jungle.ability2.range", 10.0);
-        int poisonDur = this.cfgTicks("daggers.jungle.ability2.poison-duration-seconds", 5.0);
-        int poisonAmp = this.cfgI("daggers.jungle.ability2.poison-amplifier", 0);
-        int idAmp = this.cfgI("daggers.jungle.ability2.instant-damage-amplifier", 0);
-        Entity target = this.getNearestTarget(p, range);
-        if (target == null) {
-            p.sendMessage("\u00a7cNo target!");
-            return;
-        }
-        if (target instanceof LivingEntity) {
-            LivingEntity le = (LivingEntity)target;
-            le.teleport(p.getLocation());
-            le.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_DAMAGE, 1, idAmp));
-            le.addPotionEffect(new PotionEffect(PotionEffectType.POISON, poisonDur, poisonAmp));
-            p.sendMessage("\u00a72Vine pulled " + le.getName() + "!");
-        }
+    private void jungleAbility2(final Player p) {
+        final double range = this.cfgD("daggers.jungle.ability2.range", 20.0);
+        final int poisonDur = this.cfgTicks("daggers.jungle.ability2.poison-duration-seconds", 5.0);
+        final int poisonAmp = this.cfgI("daggers.jungle.ability2.poison-amplifier", 0);
+        final int idAmp = this.cfgI("daggers.jungle.ability2.instant-damage-amplifier", 0);
+        final Location start = p.getEyeLocation();
+        final Vector dir = start.getDirection().normalize();
+        p.getWorld().playSound(start, Sound.BLOCK_GRASS_BREAK, 1.2f, 1.4f);
+        p.sendMessage("\u00a72Vine launched!");
+        new BukkitRunnable() {
+            double dist = 0.0;
+            public void run() {
+                for (int i = 0; i < 4; i++) {
+                    dist += 0.5;
+                    if (dist > range) { this.cancel(); return; }
+                    Location pt = start.clone().add(dir.clone().multiply(dist));
+                    pt.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, pt, 1, 0.05, 0.05, 0.05, 0.0);
+                    pt.getWorld().spawnParticle(Particle.COMPOSTER, pt, 2, 0.1, 0.1, 0.1, 0.0);
+                    if (!pt.getBlock().isPassable()) { this.cancel(); return; }
+                    for (Entity e : pt.getWorld().getNearbyEntities(pt, 1.2, 1.2, 1.2)) {
+                        if (e == p || !(e instanceof LivingEntity)) continue;
+                        if (AbilityManager.this.isTrustedEntity(p, e)) continue;
+                        LivingEntity le = (LivingEntity) e;
+                        Location dest = p.getLocation().clone();
+                        Vector pull = p.getLocation().toVector().subtract(le.getLocation().toVector());
+                        double len = pull.length();
+                        if (len > 1.0) {
+                            le.setVelocity(pull.normalize().multiply(Math.min(2.5, len * 0.3)).setY(0.4));
+                        } else {
+                            le.teleport(dest);
+                        }
+                        le.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_DAMAGE, 1, idAmp));
+                        le.addPotionEffect(new PotionEffect(PotionEffectType.POISON, poisonDur, poisonAmp));
+                        le.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, le.getLocation().add(0.0, 1.0, 0.0), 15, 0.4, 0.5, 0.4, 0.0);
+                        le.getWorld().playSound(le.getLocation(), Sound.BLOCK_VINE_BREAK, 1.0f, 1.0f);
+                        p.sendMessage("\u00a72Vine pulled " + le.getName() + "!");
+                        this.cancel();
+                        return;
+                    }
+                }
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
     private void midasAbility1(Player p) {
@@ -1163,35 +1272,80 @@ public class AbilityManager {
 
     private void midasAbility2(Player p) {
         double radius = this.cfgD("daggers.midas.ability2.radius", 5.0);
-        int dur = this.cfgTicks("daggers.midas.ability2.duration-seconds", 5.0);
-        this.applyTempProtection(p, dur);
+        upgradeArmorToNetherite(p);
         for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
             if (!(e instanceof Player)) continue;
             Player tp = (Player)e;
             if (!this.plugin.getTrustManager().isTrusted(p.getUniqueId(), tp.getUniqueId())) continue;
-            this.applyTempProtection(tp, dur);
-            tp.sendMessage("\u00a76" + p.getName() + " gave you Resistance for " + dur / 20 + "s!");
+            upgradeArmorToNetherite(tp);
+            tp.sendMessage("\u00a76" + p.getName() + " upgraded your armor to Netherite!");
         }
-        p.sendMessage("\u00a76Protection aura activated!");
+        p.sendMessage("\u00a76Armor upgraded to Netherite!");
     }
 
-    private void applyTempProtection(Player p, int durTicks) {
-        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, durTicks, 1));
+    private static void upgradeArmorToNetherite(Player p) {
+        ItemStack[] armor = p.getInventory().getArmorContents();
+        for (int i = 0; i < armor.length; i++) {
+            ItemStack piece = armor[i];
+            if (piece == null || piece.getType() == Material.AIR) continue;
+            Material newMat = netheriteEquivalent(piece.getType());
+            if (newMat == null || newMat == piece.getType()) continue;
+            ItemStack neu = new ItemStack(newMat);
+            org.bukkit.inventory.meta.ItemMeta oldMeta = piece.getItemMeta();
+            org.bukkit.inventory.meta.ItemMeta newMeta = neu.getItemMeta();
+            if (oldMeta != null && newMeta != null) {
+                for (java.util.Map.Entry<org.bukkit.enchantments.Enchantment, Integer> en : oldMeta.getEnchants().entrySet()) {
+                    newMeta.addEnchant(en.getKey(), en.getValue(), true);
+                }
+                if (oldMeta.hasDisplayName()) newMeta.setDisplayName(oldMeta.getDisplayName());
+                if (oldMeta.hasLore()) newMeta.setLore(oldMeta.getLore());
+                newMeta.setUnbreakable(oldMeta.isUnbreakable());
+                neu.setItemMeta(newMeta);
+            }
+            armor[i] = neu;
+        }
+        p.getInventory().setArmorContents(armor);
+        p.getWorld().spawnParticle(Particle.WAX_ON, p.getLocation().add(0.0, 1.0, 0.0), 30, 0.5, 1.0, 0.5, 0.0);
+        p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1.2f, 1.0f);
+    }
+
+    private static Material netheriteEquivalent(Material m) {
+        switch (m) {
+            case LEATHER_HELMET: case CHAINMAIL_HELMET: case IRON_HELMET: case GOLDEN_HELMET: case DIAMOND_HELMET: return Material.NETHERITE_HELMET;
+            case LEATHER_CHESTPLATE: case CHAINMAIL_CHESTPLATE: case IRON_CHESTPLATE: case GOLDEN_CHESTPLATE: case DIAMOND_CHESTPLATE: return Material.NETHERITE_CHESTPLATE;
+            case LEATHER_LEGGINGS: case CHAINMAIL_LEGGINGS: case IRON_LEGGINGS: case GOLDEN_LEGGINGS: case DIAMOND_LEGGINGS: return Material.NETHERITE_LEGGINGS;
+            case LEATHER_BOOTS: case CHAINMAIL_BOOTS: case IRON_BOOTS: case GOLDEN_BOOTS: case DIAMOND_BOOTS: return Material.NETHERITE_BOOTS;
+            default: return null;
+        }
     }
 
     private void toxicAbility1(final Player p) {
-        Location loc = p.getLocation();
         final int dur = this.cfgTicks("daggers.toxic.ability1.cloud-duration-seconds", 5.0);
         final int amp = this.cfgI("daggers.toxic.ability1.poison-amplifier", 2);
         final double radius = this.cfgD("daggers.toxic.ability1.radius", 5.0);
-        loc.getWorld().spawnParticle(Particle.SNEEZE, loc.add(0.0, 1.0, 0.0), 60, radius * 0.5, 1.0, radius * 0.5, 0.0);
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WITCH_THROW, 1.2f, 0.8f);
         new BukkitRunnable(){
             int t = 0;
-
             public void run() {
                 if (++this.t > dur || !p.isOnline()) {
                     this.cancel();
                     return;
+                }
+                Location c = p.getLocation().add(0.0, 1.0, 0.0);
+                java.util.Random r = AbilityManager.this.random;
+                for (int i = 0; i < 24; i++) {
+                    double ang = r.nextDouble() * Math.PI * 2;
+                    double dr = Math.sqrt(r.nextDouble()) * radius;
+                    double y = (r.nextDouble() - 0.2) * 1.6;
+                    Location pt = c.clone().add(Math.cos(ang) * dr, y, Math.sin(ang) * dr);
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 1, 0.05, 0.05, 0.05, (Object) new Particle.DustOptions(Color.fromRGB(80, 200, 60), 1.4f));
+                }
+                for (int i = 0; i < 6; i++) {
+                    double ang = r.nextDouble() * Math.PI * 2;
+                    double dr = r.nextDouble() * radius;
+                    Location pt = c.clone().add(Math.cos(ang) * dr, r.nextDouble() * 1.2, Math.sin(ang) * dr);
+                    pt.getWorld().spawnParticle(Particle.SNEEZE, pt, 1, 0.0, 0.0, 0.0, 0.0);
+                    pt.getWorld().spawnParticle(Particle.ITEM_SLIME, pt, 1, 0.0, 0.0, 0.0, 0.0);
                 }
                 if (this.t % 10 == 0) {
                     for (Entity e : p.getNearbyEntities(radius, 2.0, radius)) {
@@ -1201,7 +1355,7 @@ public class AbilityManager {
                     }
                 }
             }
-        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
+        }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
         p.sendMessage("\u00a7aPoison cloud released!");
     }
 
@@ -1285,10 +1439,10 @@ public class AbilityManager {
         int width = this.cfgI("daggers.earth.ability1.width", 4);
         int height = this.cfgI("daggers.earth.ability1.height", 3);
         try {
-            mat = Material.valueOf((String)this.plugin.getConfig().getString("daggers.earth.ability1.material", "STONE"));
+            mat = Material.valueOf((String)this.plugin.getConfig().getString("daggers.earth.ability1.material", "OBSIDIAN"));
         }
         catch (Exception ex) {
-            mat = Material.STONE;
+            mat = Material.OBSIDIAN;
         }
         int half = width / 2;
         for (int col = -half; col < width - half; ++col) {
@@ -1320,29 +1474,52 @@ public class AbilityManager {
 
     private void earthAbility2(final Player p) {
         final Location spawnLoc = p.getEyeLocation().add(p.getLocation().getDirection().normalize().multiply(2));
-        Vector vel = p.getLocation().getDirection().normalize().multiply(1.5).setY(0.5);
-        final double dmg = this.cfgD("daggers.earth.ability2.boulder-damage", 8.0);
-        final double radius = this.cfgD("daggers.earth.ability2.radius", 4.0);
+        Vector vel = p.getLocation().getDirection().normalize().multiply(1.8).setY(0.45);
+        final double dmg = this.cfgD("daggers.earth.ability2.boulder-damage", 12.0);
+        final double radius = this.cfgD("daggers.earth.ability2.radius", 7.0);
+        final float boulderScale = (float) this.cfgD("daggers.earth.ability2.scale", 3.0);
         final FallingBlock boulder = p.getWorld().spawnFallingBlock(spawnLoc, Material.COBBLESTONE.createBlockData());
         boulder.setVelocity(vel);
         boulder.setDropItem(false);
         boulder.setHurtEntities(true);
         boulder.setMetadata("dagger_earth_boulder", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)p.getUniqueId().toString()));
-        p.sendMessage("\u00a76Boulder hurled!");
+        final org.bukkit.entity.BlockDisplay display = (org.bukkit.entity.BlockDisplay) p.getWorld().spawnEntity(spawnLoc, EntityType.BLOCK_DISPLAY);
+        display.setBlock(Material.COBBLESTONE.createBlockData());
+        org.bukkit.util.Transformation tf = display.getTransformation();
+        tf = new org.bukkit.util.Transformation(
+            new org.joml.Vector3f(-boulderScale * 0.5f, -boulderScale * 0.5f, -boulderScale * 0.5f),
+            tf.getLeftRotation(),
+            new org.joml.Vector3f(boulderScale, boulderScale, boulderScale),
+            tf.getRightRotation()
+        );
+        display.setTransformation(tf);
+        p.sendMessage("\u00a76Massive boulder hurled!");
+        p.getWorld().playSound(spawnLoc, Sound.ENTITY_RAVAGER_ROAR, 1.4f, 0.7f);
         new BukkitRunnable(){
             int ticks = 0;
-
             public void run() {
                 ++this.ticks;
+                if (boulder.isValid()) {
+                    Location bl = boulder.getLocation();
+                    display.teleport(bl);
+                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.add(0, 0.5, 0), 8, boulderScale * 0.4, boulderScale * 0.4, boulderScale * 0.4, Material.COBBLESTONE.createBlockData());
+                    bl.getWorld().spawnParticle(Particle.LARGE_SMOKE, bl, 3, 0.3, 0.3, 0.3, 0.02);
+                }
                 if (this.ticks > 200 || !boulder.isValid()) {
                     Location impact = boulder.isValid() ? boulder.getLocation() : spawnLoc;
                     boulder.remove();
-                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 15, 1.0, 0.5, 1.0, 0.0);
-                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
+                    display.remove();
+                    impact.getWorld().createExplosion(impact, (float) Math.min(4.0, radius * 0.5), false, false, p);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 3, 1.0, 0.5, 1.0, 0.0);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 30, radius * 0.4, 0.5, radius * 0.4, 0.0);
+                    impact.getWorld().spawnParticle(Particle.BLOCK, impact, 80, radius * 0.5, 0.5, radius * 0.5, Material.COBBLESTONE.createBlockData());
+                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.7f);
                     for (Entity e : impact.getWorld().getNearbyEntities(impact, radius, radius, radius)) {
                         LivingEntity le;
                         if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
                         le.damage(dmg, (Entity)p);
+                        Vector kb = le.getLocation().toVector().subtract(impact.toVector()).normalize().multiply(1.2).setY(0.6);
+                        le.setVelocity(kb);
                     }
                     this.cancel();
                 }
@@ -1405,41 +1582,47 @@ public class AbilityManager {
         if (this.guardianBeamTasks.containsKey(uuid)) {
             return;
         }
-        final double dmgPerSec = this.cfgD("daggers.guardian.ability1.beam-damage-per-tick", 1.0);
+        final double dmgPerSec = this.cfgD("daggers.guardian.ability1.beam-damage-per-tick", 2.0);
         final double knock = this.cfgD("daggers.guardian.ability1.knockback", 0.5);
         final long maxTicks = this.cfgTicks("daggers.guardian.ability1.duration-seconds", 8.0);
-        final Entity[] tgt = new Entity[]{this.getNearestTarget(p, 30.0)};
-        if (tgt[0] == null) {
-            p.sendMessage("\u00a7cNo target!");
-            return;
-        }
-        p.sendMessage("\u00a7bGuardian beam locked on " + tgt[0].getName());
+        final double maxRange = this.cfgD("daggers.guardian.ability1.range", 30.0);
+        p.sendMessage("\u00a7bGuardian Beam fired!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 2.0f, 1.0f);
         BukkitRunnable beam = new BukkitRunnable(){
             int ticks = 0;
-
             public void run() {
-                Entity entity;
                 ++this.ticks;
-                if (!p.isOnline() || tgt[0] == null || !tgt[0].isValid() || tgt[0].isDead() || (long)this.ticks > maxTicks) {
+                if (!p.isOnline() || (long) this.ticks > maxTicks) {
                     AbilityManager.this.endGuardianBeam(p);
                     this.cancel();
                     return;
                 }
                 Location start = p.getEyeLocation();
-                Location end = tgt[0].getLocation().add(0.0, 1.0, 0.0);
-                double dist = start.distance(end);
-                Vector dir = end.subtract(start).toVector().normalize();
-                for (double d = 0.0; d < dist; d += 0.5) {
+                Vector dir = start.getDirection().normalize();
+                double traveled = 0.0;
+                Set<Entity> hitThisTick = new HashSet<Entity>();
+                for (double d = 0.0; d < maxRange; d += 0.4) {
                     Location pt = start.clone().add(dir.clone().multiply(d));
-                    pt.getWorld().spawnParticle(Particle.DUST, pt, 0, (Object)new Particle.DustOptions(Color.fromRGB((int)100, (int)200, (int)255), 0.5f));
+                    if (!pt.getBlock().isPassable()) break;
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 2, 0.05, 0.05, 0.05, (Object) new Particle.DustOptions(Color.fromRGB(120, 220, 255), 1.2f));
+                    if (ticks % 4 == 0) {
+                        pt.getWorld().spawnParticle(Particle.END_ROD, pt, 1, 0.0, 0.0, 0.0, 0.0);
+                    }
+                    traveled = d;
+                    if (ticks % 5 == 0) {
+                        for (Entity e : pt.getWorld().getNearbyEntities(pt, 0.7, 0.7, 0.7)) {
+                            if (e == p || hitThisTick.contains(e) || !(e instanceof LivingEntity)) continue;
+                            if (AbilityManager.this.isTrustedEntity(p, e)) continue;
+                            LivingEntity le = (LivingEntity) e;
+                            le.damage(dmgPerSec, (Entity) p);
+                            Vector kb = e.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(knock).setY(0.2);
+                            e.setVelocity(kb);
+                            hitThisTick.add(e);
+                        }
+                    }
                 }
-                if (this.ticks % 20 == 0 && (entity = tgt[0]) instanceof LivingEntity) {
-                    LivingEntity le = (LivingEntity)entity;
-                    le.damage(dmgPerSec, (Entity)p);
-                    Vector kb = tgt[0].getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(knock).setY(0.2);
-                    tgt[0].setVelocity(kb);
-                }
+                Location end = start.clone().add(dir.clone().multiply(traveled));
+                end.getWorld().spawnParticle(Particle.FLASH, end, 1, 0.0, 0.0, 0.0, 0.0);
             }
         };
         beam.runTaskTimer((Plugin)this.plugin, 0L, 1L);
@@ -1473,49 +1656,61 @@ public class AbilityManager {
         p.sendMessage("\u00a7bMining fatigue applied nearby!");
     }
 
-    private void ghostAbility1(Player p) {
+    private void ghostAbility1(final Player p) {
         double dist = this.cfgD("daggers.ghost.ability1.dash-blocks", 10.0);
-        Vector dir = p.getLocation().getDirection().normalize().multiply(dist);
-        Location target = p.getLocation().clone().add(dir);
-        target.setPitch(p.getLocation().getPitch());
-        target.setYaw(p.getLocation().getYaw());
-        p.teleport(target);
-        p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation(), 30, 0.5, 1.0, 0.5, 0.05);
+        final Vector dir = p.getLocation().getDirection().normalize();
+        double power = Math.max(1.5, dist * 0.18);
+        p.setVelocity(new Vector(dir.getX() * power, Math.max(0.25, p.getVelocity().getY()), dir.getZ() * power));
+        p.setFallDistance(0.0f);
+        this.windFallDamageImmune.add(p.getUniqueId());
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 1.2f, 1.5f);
         p.sendMessage("\u00a77Ghost dash!");
+        new BukkitRunnable() {
+            int t = 0;
+            public void run() {
+                if (++t > 12 || !p.isOnline()) {
+                    AbilityManager.this.windFallDamageImmune.remove(p.getUniqueId());
+                    this.cancel();
+                    return;
+                }
+                p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1.0, 0), 4, 0.2, 0.2, 0.2, 0.0);
+                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 1.0, 0), 3, 0.2, 0.3, 0.2, (Object) new Particle.DustOptions(Color.WHITE, 1.2f));
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
     private void ghostAbility2(final Player p) {
         long ticks = this.cfgTicks("daggers.ghost.ability2.flight-duration-seconds", 8.0);
         final UUID uuid = p.getUniqueId();
+        final org.bukkit.GameMode prevMode = p.getGameMode();
         this.ghostFormActive.add(uuid);
-        p.setAllowFlight(true);
-        p.setFlying(true);
+        p.setGameMode(org.bukkit.GameMode.SPECTATOR);
+        p.setInvisible(true);
+        p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, (int) ticks + 20, 0, false, false, false));
         p.setMetadata("dagger_ghost_noclip", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.sendMessage("\u00a77Ghost flight for " + ticks / 20L + "s!");
+        p.sendMessage("\u00a77Ghost form for " + ticks / 20L + "s \u2014 fly through anything!");
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_VEX_AMBIENT, 1.0f, 0.6f);
         final BukkitRunnable trail = new BukkitRunnable(){
-
             public void run() {
                 if (!p.isOnline()) {
                     this.cancel();
                     return;
                 }
-                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0.0, 1.0, 0.0), 5, 0.2, 0.4, 0.2, (Object)new Particle.DustOptions(Color.WHITE, 1.0f));
+                p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0.0, 1.0, 0.0), 6, 0.3, 0.5, 0.3, (Object)new Particle.DustOptions(Color.WHITE, 1.4f));
+                p.getWorld().spawnParticle(Particle.SOUL, p.getLocation().add(0.0, 0.5, 0.0), 1, 0.2, 0.2, 0.2, 0.0);
             }
         };
-        trail.runTaskTimer((Plugin)this.plugin, 0L, 4L);
+        trail.runTaskTimer((Plugin)this.plugin, 0L, 3L);
         new BukkitRunnable(){
-
             public void run() {
                 AbilityManager.this.ghostFormActive.remove(uuid);
                 trail.cancel();
-                if (!p.isOnline()) {
-                    return;
-                }
-                if (!p.isOp()) {
-                    p.setAllowFlight(false);
-                }
-                p.setFlying(false);
+                if (!p.isOnline()) return;
+                p.setInvisible(false);
+                p.removePotionEffect(PotionEffectType.INVISIBILITY);
+                p.setGameMode(prevMode);
                 p.removeMetadata("dagger_ghost_noclip", (Plugin)AbilityManager.this.plugin);
+                p.sendMessage("\u00a77Ghost form ended.");
             }
         }.runTaskLater((Plugin)this.plugin, ticks);
     }

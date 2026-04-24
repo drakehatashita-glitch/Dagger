@@ -1,25 +1,17 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  org.bukkit.command.Command
- *  org.bukkit.command.CommandExecutor
- *  org.bukkit.command.CommandSender
- *  org.bukkit.entity.Player
- *  org.bukkit.inventory.ItemStack
- */
 package com.daggersmp.commands;
 
 import com.daggersmp.DaggerSMP;
 import com.daggersmp.daggers.DaggerType;
+import java.util.Collections;
+import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-public class AbilityCommand
-implements CommandExecutor {
+public class AbilityCommand implements CommandExecutor, TabCompleter {
     private final DaggerSMP plugin;
     private final int abilityNum;
 
@@ -33,7 +25,7 @@ implements CommandExecutor {
             sender.sendMessage("Only players can use this command.");
             return true;
         }
-        Player player = (Player)sender;
+        Player player = (Player) sender;
         if (!player.hasPermission("daggersmp.use")) {
             player.sendMessage("\u00a7cNo permission.");
             return true;
@@ -51,5 +43,8 @@ implements CommandExecutor {
         this.plugin.getAbilityManager().tryActivate(player, type, this.abilityNum);
         return true;
     }
-}
 
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        return Collections.emptyList();
+    }
+}

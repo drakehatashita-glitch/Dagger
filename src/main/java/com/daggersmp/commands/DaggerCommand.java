@@ -20,9 +20,14 @@ import com.daggersmp.DaggerSMP;
 import com.daggersmp.daggers.DaggerType;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
@@ -31,7 +36,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class DaggerCommand
-implements CommandExecutor {
+implements CommandExecutor, TabCompleter {
     private final DaggerSMP plugin;
 
     public DaggerCommand(DaggerSMP plugin) {
@@ -177,22 +182,44 @@ implements CommandExecutor {
             sender.sendMessage("\u00a7cNo permission.");
             return true;
         }
-        if (args.length < 2) {
-            sender.sendMessage("\u00a7cUsage: /dagger cooldown <player> [reset]");
-            return true;
-        }
-        Player target = Bukkit.getPlayer((String)args[1]);
-        if (target == null) {
-            sender.sendMessage("\u00a7cPlayer not found.");
-            return true;
-        }
-        if (args.length >= 3 && args[2].equalsIgnoreCase("reset")) {
-            this.plugin.getCooldownManager().clearAllCooldowns(target.getUniqueId());
-            sender.sendMessage("\u00a7aCleared cooldowns for " + target.getName());
+        Player target;
+        if (args.length >= 2) {
+            target = Bukkit.getPlayer((String)args[1]);
+            if (target == null) {
+                sender.sendMessage("\u00a7cPlayer not found.");
+                return true;
+            }
+        } else if (sender instanceof Player) {
+            target = (Player)sender;
         } else {
-            sender.sendMessage("\u00a77" + target.getName() + " cooldowns shown in action bar.");
+            sender.sendMessage("\u00a7cUsage from console: /dagger cooldown <player>");
+            return true;
         }
+        this.plugin.getCooldownManager().clearAllCooldowns(target.getUniqueId());
+        sender.sendMessage("\u00a7aReset cooldowns for " + target.getName());
         return true;
+    }
+
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> out = new ArrayList<>();
+        if (args.length == 1) {
+            for (String s : Arrays.asList("give", "list", "togglecontrols", "recipe", "cooldown", "reload")) {
+                if (s.startsWith(args[0].toLowerCase())) out.add(s);
+            }
+            return out;
+        }
+        String sub = args[0].toLowerCase();
+        if (sub.equals("give") && args.length == 2) {
+            for (com.daggersmp.daggers.DaggerType t : com.daggersmp.daggers.DaggerType.values()) {
+                if (t.getId().startsWith(args[1].toLowerCase())) out.add(t.getId());
+            }
+        } else if ((sub.equals("give") && args.length == 3) || (sub.equals("cooldown") && args.length == 2)) {
+            String prefix = args[args.length - 1].toLowerCase();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p.getName().toLowerCase().startsWith(prefix)) out.add(p.getName());
+            }
+        }
+        return out;
     }
 
     private boolean reload(CommandSender sender) {
@@ -212,7 +239,7 @@ implements CommandExecutor {
         s.sendMessage("\u00a77  list");
         s.sendMessage("\u00a77  togglecontrols \u00a78- toggle F-key ability activation");
         s.sendMessage("\u00a77  recipe \u00a78- view all dagger recipes");
-        s.sendMessage("\u00a77  cooldown <player> [reset] \u00a78(admin)");
+        s.sendMessage("\u00a77  cooldown [player] \u00a78(admin) - resets cooldowns; defaults to self");
         s.sendMessage("\u00a77  reload \u00a78(admin)");
     }
 

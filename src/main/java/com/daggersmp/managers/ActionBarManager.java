@@ -39,8 +39,7 @@ public class ActionBarManager {
                     UUID uuid = player.getUniqueId();
                     CooldownManager cm = ActionBarManager.this.plugin.getCooldownManager();
                     long cd1 = cm.getRemainingSeconds(uuid, held, 1);
-                    long cd2 = cm.getRemainingSeconds(uuid, held, 2);
-                    String bar = "\u00a76" + held.getDisplayName() + "  \u00a7aA1: " + (String)(cd1 > 0L ? "\u00a7c" + cd1 + "s" : "\u00a7aReady") + "  \u00a7aA2: " + (String)(cd2 > 0L ? "\u00a7c" + cd2 + "s" : "\u00a7aReady");
+                    String bar = "\u00a76" + held.getDisplayName() + "  \u00a7aA1: " + (String)(cd1 > 0L ? "\u00a7c" + cd1 + "s" : "\u00a7aReady");
                     player.sendActionBar((Component)Component.text((String)bar));
                 }
             }

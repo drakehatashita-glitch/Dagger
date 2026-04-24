@@ -118,12 +118,17 @@ public enum DaggerType {
 
     private void addAbility(List<String> lore, FileConfiguration c, int n, String text) {
         int cd = this.ci(c, "ability" + n + ".cooldown-seconds", 30);
-        lore.add(this.color + "Ability " + n + ": \u00a77" + text);
+        lore.add(this.color + "Ability " + n + ": \u00a77" + stripParens(text));
         lore.add(this.color + "Cooldown: " + cd + " Seconds");
     }
 
     private void addPassive(List<String> lore, String text) {
-        lore.add(this.color + "Passive: \u00a77" + text);
+        lore.add(this.color + "Passive: \u00a77" + stripParens(text));
+    }
+
+    private static String stripParens(String s) {
+        if (s == null) return null;
+        return s.replaceAll("\\s*\\([^)]*\\)", "").replaceAll("\\s+", " ").trim();
     }
 
     public List<String> buildLore() {

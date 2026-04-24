@@ -1,24 +1,16 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  org.bukkit.Bukkit
- *  org.bukkit.command.Command
- *  org.bukkit.command.CommandExecutor
- *  org.bukkit.command.CommandSender
- *  org.bukkit.entity.Player
- */
 package com.daggersmp.commands;
 
 import com.daggersmp.DaggerSMP;
+import java.util.ArrayList;
+import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class TrustCommand
-implements CommandExecutor {
+public class TrustCommand implements CommandExecutor, TabCompleter {
     private final DaggerSMP plugin;
     private final boolean trust;
 
@@ -32,12 +24,12 @@ implements CommandExecutor {
             sender.sendMessage("Only players can use this command.");
             return true;
         }
-        Player player = (Player)sender;
+        Player player = (Player) sender;
         if (args.length == 0) {
             player.sendMessage("\u00a7cUsage: /" + (this.trust ? "trust" : "untrust") + " <player>");
             return true;
         }
-        Player target = Bukkit.getPlayer((String)args[0]);
+        Player target = Bukkit.getPlayer(args[0]);
         if (target == null) {
             player.sendMessage("\u00a7cPlayer not found: " + args[0]);
             return true;
@@ -51,5 +43,16 @@ implements CommandExecutor {
         }
         return true;
     }
-}
 
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> out = new ArrayList<>();
+        if (args.length == 1) {
+            String prefix = args[0].toLowerCase();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (sender instanceof Player && p == sender) continue;
+                if (p.getName().toLowerCase().startsWith(prefix)) out.add(p.getName());
+            }
+        }
+        return out;
+    }
+}
