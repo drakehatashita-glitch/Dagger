@@ -1195,6 +1195,8 @@ public class AbilityManager {
         }
         p.sendMessage("\u00a72Grappling!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_THROW, 1.0f, 1.2f);
+        final Particle.DustOptions vineGreen = new Particle.DustOptions(Color.fromRGB(40, 160, 50), 0.9f);
+        final Particle.DustOptions vineLeaf  = new Particle.DustOptions(Color.fromRGB(110, 210, 90), 0.7f);
         new BukkitRunnable(){
             int ticks = 0;
 
@@ -1206,6 +1208,26 @@ public class AbilityManager {
                     return;
                 }
                 Location dest = targetEnt != null ? targetEnt.getLocation().add(0.0, 0.5, 0.0) : targetLoc;
+                // Draw a visible vine from the player's hand to the grapple target every tick.
+                Location handLoc = p.getEyeLocation().add(p.getLocation().getDirection().multiply(0.4)).subtract(0.0, 0.3, 0.0);
+                Vector full = dest.toVector().subtract(handLoc.toVector());
+                double total = full.length();
+                if (total > 0.001) {
+                    Vector unit = full.clone().normalize();
+                    double step = 0.35;
+                    for (double d = 0.0; d <= total; d += step) {
+                        Location pt = handLoc.clone().add(unit.clone().multiply(d));
+                        pt.getWorld().spawnParticle(Particle.DUST, pt, 2, 0.02, 0.02, 0.02, (Object) vineGreen);
+                        if (((int)(d * 4) + this.ticks) % 5 == 0) {
+                            pt.getWorld().spawnParticle(Particle.DUST, pt, 1, 0.05, 0.05, 0.05, (Object) vineLeaf);
+                        }
+                        if (((int)(d * 4) + this.ticks) % 9 == 0) {
+                            pt.getWorld().spawnParticle(Particle.COMPOSTER, pt, 1, 0.0, 0.0, 0.0, 0.0);
+                        }
+                    }
+                    // Tip flair so the anchor point is obviously connected.
+                    dest.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, dest, 2, 0.15, 0.15, 0.15, 0.0);
+                }
                 Vector to = dest.toVector().subtract(p.getLocation().toVector());
                 double dist = to.length();
                 if (dist < 1.5) {

@@ -212,10 +212,11 @@ public enum DaggerType {
             case 6: {
                 int gd = this.ci(c, "ability1.glow-duration-seconds", 30);
                 int hd = this.ci(c, "ability2.hitbox-duration-seconds", 5);
+                int rb = (int)this.cd(c, "ability2.reach-bonus", 3.0);
                 this.addPassive(lore, "Permanent Haste & Speed");
                 lore.add("");
                 this.addAbility(lore, c, 1, "Reveal nearby entities (glowing for " + gd + " seconds)");
-                this.addAbility(lore, c, 2, "Expand your hitbox & damage for " + hd + " seconds");
+                this.addAbility(lore, c, 2, "+" + rb + " blocks of reach for " + hd + " seconds");
                 break;
             }
             case 7: {
