@@ -9,6 +9,7 @@ com/daggersmp/managers/CraftLimitManager.class
 com/daggersmp/managers/AbilityManager$7.class
 com/daggersmp/managers/VoidStateManager.class
 com/daggersmp/commands/DaggerCommand.class
+com/daggersmp/managers/AbilityManager$37.class
 com/daggersmp/managers/AbilityManager$24.class
 com/daggersmp/managers/AbilityManager$34.class
 com/daggersmp/listeners/DaggerListener$4.class
@@ -40,6 +41,7 @@ com/daggersmp/managers/AbilityManager$19.class
 com/daggersmp/managers/AbilityManager$29.class
 com/daggersmp/managers/AbilityManager$32.class
 com/daggersmp/commands/TrustCommand.class
+com/daggersmp/managers/AbilityManager$39.class
 com/daggersmp/managers/AbilityManager.class
 com/daggersmp/managers/AbilityManager$2.class
 com/daggersmp/commands/AbilityCommand.class
@@ -57,3 +59,4 @@ com/daggersmp/managers/AbilityManager$23.class
 com/daggersmp/managers/TrustManager.class
 com/daggersmp/listeners/DaggerListener$Vector.class
 com/daggersmp/managers/AbilityManager$18.class
+com/daggersmp/managers/AbilityManager$38.class
