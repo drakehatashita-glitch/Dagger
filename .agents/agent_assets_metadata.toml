@@ -22,16 +22,40 @@ title = "All 25 dagger textures preview"
 id = "jGLRS_g1XWIlqr3cMmCXx"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/wind.png"
 type = "image"
-title = "Wind Dagger (sample)"
+title = "Wind (cyan-blue)"
 
 [[outputs]]
 id = "z3t4D1QtfirbAo2HX4HJn"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/void.png"
 type = "image"
-title = "Void Dagger (sample)"
+title = "Void (deep purple)"
 
 [[outputs]]
 id = "kXIYQ9JFd7vUeObOL-wpc"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/frost.png"
 type = "image"
 title = "Frost Dagger (sample)"
+
+[[outputs]]
+id = "-caSpfuMs-n3KAn9z5fmn"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/strength.png"
+type = "image"
+title = "Strength (red)"
+
+[[outputs]]
+id = "jwQuxRRo4NzO6e-jUbcQR"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/jungle.png"
+type = "image"
+title = "Jungle (green)"
+
+[[outputs]]
+id = "RTxoxpV78cKK5WMd6-cLQ"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/midas.png"
+type = "image"
+title = "Midas (gold)"
+
+[[outputs]]
+id = "CadNOgSaaqo5VVqYM3Jcw"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/storm.png"
+type = "image"
+title = "Storm (yellow)"
