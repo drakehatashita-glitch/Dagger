@@ -108,6 +108,54 @@ uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_
 type = "image"
 title = "arachnid dagger"
 
+[[generated]]
+id = "LFpH6VZ_MtxyIDotsNbfH"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_vampire.png"
+type = "image"
+title = "vampire dagger"
+
+[[generated]]
+id = "9qqEv8shtvF0lJSP8Lzq8"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_gravity.png"
+type = "image"
+title = "gravity dagger"
+
+[[generated]]
+id = "kJE6RccsPK-R2RgMRpUo0"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_earth.png"
+type = "image"
+title = "earth dagger"
+
+[[generated]]
+id = "vGcLRgMjy-f8oApD7STeK"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_titan.png"
+type = "image"
+title = "titan dagger"
+
+[[generated]]
+id = "DTd05tirGGsmLI1hJLDH2"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_guardian.png"
+type = "image"
+title = "guardian dagger"
+
+[[generated]]
+id = "JBi0wlTwiJ8Q7jS2OCv9c"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_ghost.png"
+type = "image"
+title = "ghost dagger"
+
+[[generated]]
+id = "5iITcL5oB3OXvCcx6KtC_"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_chance.png"
+type = "image"
+title = "chance dagger"
+
+[[generated]]
+id = "5LULRLf4PaZG9X1E6szyp"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_storm.png"
+type = "image"
+title = "storm dagger"
+
 [[outputs]]
 id = "BE8fbNiPJJUtI4yXMcL6V"
 uri = "file://DaggerSMP-TexturePack.zip"
@@ -191,3 +239,9 @@ id = "FJ_0rqAzFtKBFDOaPFAK4"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/arachnid.png"
 type = "image"
 title = "Arachnid - black w/ red web"
+
+[[outputs]]
+id = "_k-l16xbpC70UUcdVxmEA"
+uri = "file://attached_assets/dagger_collection_v2.png"
+type = "image"
+title = "All 25 DaggerSMP daggers (5x5)"

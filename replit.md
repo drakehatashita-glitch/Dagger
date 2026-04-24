@@ -19,6 +19,11 @@ cp target/DaggerSMP-2.2.0.jar DaggerSMP-2.2.0.jar
 ```
 Drop `DaggerSMP-2.2.0.jar` into your own Paper 1.21.11 server's `plugins/` folder.
 
+## v2.2.0 follow-up fixes (April 24, 2026 — round 4)
+- **All 25 dagger textures regenerated** as proper 256×256 ornate fantasy daggers (curved scimitar blade, dark wrapped handle with gold crossguard, gem pommel, themed glow aura per dagger). Each dagger has unique themed details — life has heart particles, hack has matrix code, frost has snowflakes, vampire has bat silhouettes, chance has rainbow sparkles, storm has lightning bolts, etc. Replaces the previous 16×16 colored-stripe stubs.
+- **`dagger_base.json` model rewritten** to extend `minecraft:item/handheld` (the same parent vanilla swords use). The texture renders as a flat 2D sprite that Minecraft auto-extrudes into a 3D model in-hand, with the blade angled outward and away from the player's view in both right and left hand. The previous custom voxel cuboid model only used the texture as a tiny color palette so the artwork never showed.
+- **Texture pack zip rebuilt** at `DaggerSMP-TexturePack.zip` (~1.4 MB).
+
 ## v2.2.0 follow-up fixes (April 24, 2026 — round 3)
 - **Target = Paper 1.21.11.** `pom.xml` already builds against `paper-api 1.21.11-R0.1-SNAPSHOT`; the texture pack `pack.mcmeta` advertises 1.21.11.
 - **No server runs from this Repl** — this is plugin/texture pack development only. Build with `mvn -B clean package`.
