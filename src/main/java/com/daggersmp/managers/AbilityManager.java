@@ -1305,42 +1305,65 @@ public class AbilityManager {
     }
 
     private void toxicAbility1(final Player p) {
-        final int dur = this.cfgTicks("daggers.toxic.ability1.cloud-duration-seconds", 5.0);
+        final int durTicks = this.cfgTicks("daggers.toxic.ability1.cloud-duration-seconds", 5.0);
         final int amp = this.cfgI("daggers.toxic.ability1.poison-amplifier", 2);
         final double radius = this.cfgD("daggers.toxic.ability1.radius", 5.0);
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WITCH_THROW, 1.2f, 0.8f);
+        final Location center = p.getLocation().add(0.0, 0.5, 0.0);
+        p.getWorld().playSound(center, Sound.ENTITY_WITCH_THROW, 1.2f, 0.8f);
+
+        // Spawn an AreaEffectCloud entity at the center for built-in poison application
+        org.bukkit.entity.AreaEffectCloud cloud = (org.bukkit.entity.AreaEffectCloud) p.getWorld()
+                .spawnEntity(center, EntityType.AREA_EFFECT_CLOUD);
+        cloud.setRadius((float) radius);
+        cloud.setRadiusOnUse(0.0f);
+        cloud.setRadiusPerTick(0.0f);
+        cloud.setDuration(durTicks);
+        cloud.setReapplicationDelay(20);
+        cloud.setWaitTime(0);
+        cloud.setSource((ProjectileSource) p);
+        cloud.setParticle(Particle.ENTITY_EFFECT, Color.fromRGB(60, 220, 50));
+        try {
+            cloud.addCustomEffect(new PotionEffect(PotionEffectType.POISON, 100, amp), true);
+        } catch (Throwable ignored) {}
+
+        // Dense visible green fog: emit many particles every tick so the cloud is opaque.
         new BukkitRunnable(){
             int t = 0;
             public void run() {
-                if (++this.t > dur || !p.isOnline()) {
+                if (++this.t > durTicks || !cloud.isValid()) {
                     this.cancel();
                     return;
                 }
-                Location c = p.getLocation().add(0.0, 1.0, 0.0);
                 java.util.Random r = AbilityManager.this.random;
-                for (int i = 0; i < 24; i++) {
+                Location c = cloud.getLocation();
+                // Volumetric fill: 220 dust dots per tick across the sphere -> appears solid
+                for (int i = 0; i < 220; i++) {
+                    double u = r.nextDouble();
+                    double dr = Math.cbrt(u) * radius;       // uniform in volume
+                    double theta = r.nextDouble() * Math.PI * 2;
+                    double phi = Math.acos(2.0 * r.nextDouble() - 1.0);
+                    double dx = dr * Math.sin(phi) * Math.cos(theta);
+                    double dy = dr * Math.cos(phi) * 0.55;   // squash vertically a touch
+                    double dz = dr * Math.sin(phi) * Math.sin(theta);
+                    Location pt = c.clone().add(dx, Math.abs(dy) + 0.1, dz);
+                    pt.getWorld().spawnParticle(
+                        Particle.DUST, pt, 1, 0.0, 0.0, 0.0, 0.0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(60, 200, 40), 3.0f)
+                    );
+                }
+                // Bubbling toxic accents
+                for (int i = 0; i < 12; i++) {
                     double ang = r.nextDouble() * Math.PI * 2;
                     double dr = Math.sqrt(r.nextDouble()) * radius;
-                    double y = (r.nextDouble() - 0.2) * 1.6;
-                    Location pt = c.clone().add(Math.cos(ang) * dr, y, Math.sin(ang) * dr);
-                    pt.getWorld().spawnParticle(Particle.DUST, pt, 5, 0.05, 0.05, 0.05, (Object) new Particle.DustOptions(Color.fromRGB(80, 200, 60), 1.4f));
+                    Location pt = c.clone().add(Math.cos(ang) * dr, 0.05, Math.sin(ang) * dr);
+                    pt.getWorld().spawnParticle(Particle.ITEM_SLIME, pt, 4, 0.2, 0.1, 0.2, 0.0);
+                    pt.getWorld().spawnParticle(Particle.SNEEZE, pt, 2, 0.1, 0.1, 0.1, 0.01);
                 }
-                for (int i = 0; i < 6; i++) {
-                    double ang = r.nextDouble() * Math.PI * 2;
-                    double dr = r.nextDouble() * radius;
-                    Location pt = c.clone().add(Math.cos(ang) * dr, r.nextDouble() * 1.2, Math.sin(ang) * dr);
-                    pt.getWorld().spawnParticle(Particle.SNEEZE, pt, 5, 0.0, 0.0, 0.0, 0.0);
-                    pt.getWorld().spawnParticle(Particle.ITEM_SLIME, pt, 5, 0.0, 0.0, 0.0, 0.0);
-                }
-                if (this.t % 10 == 0) {
-                    for (Entity e : p.getNearbyEntities(radius, 2.0, radius)) {
-                        LivingEntity le;
-                        if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
-                        le.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, amp));
-                    }
+                if (this.t % 20 == 0) {
+                    cloud.getWorld().playSound(cloud.getLocation(), Sound.ENTITY_SPIDER_HURT, 0.5f, 0.6f);
                 }
             }
-        }.runTaskTimer((Plugin)this.plugin, 0L, 2L);
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
     private void toxicAbility2(Player p) {
@@ -1366,43 +1389,169 @@ public class AbilityManager {
     }
 
     private void gravityAbility1(final Player p) {
-        Location loc = p.getLocation();
-        double radius = this.cfgD("daggers.gravity.ability1.pull-radius", 10.0);
+        // Spawn a real-looking black hole 5 blocks in front of the player.
+        // It hovers in place, pulls entities toward its center, then collapses
+        // outward in an explosion that flings everything away.
+        final double pullRadius = this.cfgD("daggers.gravity.ability1.pull-radius", 8.0);
         final double dmg = this.cfgD("daggers.gravity.ability1.pull-damage", 6.0);
         final double flingY = this.cfgD("daggers.gravity.ability1.fling-y", 1.5);
-        p.getWorld().spawnParticle(Particle.PORTAL, loc, 200, 4.0, 4.0, 4.0, 0.5);
-        p.getWorld().playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 2.0f, 0.5f);
-        final ArrayList<LivingEntity> hit = new ArrayList<LivingEntity>();
-        for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
-            LivingEntity le;
-            if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || this.isTrustedEntity(p, e)) continue;
-            Vector pull = p.getLocation().toVector().subtract(e.getLocation().toVector()).normalize().multiply(2);
-            e.setVelocity(pull);
-            hit.add(le);
-        }
-        new BukkitRunnable(){
+        final int lifeTicks = this.cfgTicks("daggers.gravity.ability1.collapse-delay-seconds", 3.0);
+        final double spawnDist = this.cfgD("daggers.gravity.ability1.spawn-distance", 5.0);
+        final double coreRadius = this.cfgD("daggers.gravity.ability1.core-radius", 1.4);
 
+        Vector dir = p.getEyeLocation().getDirection().normalize();
+        final Location origin = p.getEyeLocation().add(dir.clone().multiply(spawnDist));
+        // Snap above ground a bit so it floats
+        if (origin.getBlock().getType().isSolid()) {
+            origin.add(0, 1.5, 0);
+        }
+
+        p.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 2.0f, 0.4f);
+        p.getWorld().playSound(origin, Sound.BLOCK_PORTAL_AMBIENT, 1.6f, 0.3f);
+
+        new BukkitRunnable(){
+            int t = 0;
             public void run() {
-                for (LivingEntity le : hit) {
-                    if (!le.isValid()) continue;
-                    le.damage(dmg, (Entity)p);
-                    Vector out = le.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.5).setY(flingY);
-                    le.setVelocity(out);
+                this.t++;
+                java.util.Random r = AbilityManager.this.random;
+
+                // --- Visuals: dense black sphere core + swirling event horizon ---
+                // Pitch-black core: tons of SQUID_INK in a small sphere
+                for (int i = 0; i < 60; i++) {
+                    double u = r.nextDouble();
+                    double cr = Math.cbrt(u) * coreRadius;
+                    double theta = r.nextDouble() * Math.PI * 2;
+                    double phi = Math.acos(2.0 * r.nextDouble() - 1.0);
+                    double dx = cr * Math.sin(phi) * Math.cos(theta);
+                    double dy = cr * Math.cos(phi);
+                    double dz = cr * Math.sin(phi) * Math.sin(theta);
+                    origin.getWorld().spawnParticle(Particle.SQUID_INK, origin.clone().add(dx, dy, dz), 1, 0, 0, 0, 0);
+                    origin.getWorld().spawnParticle(Particle.SMOKE, origin.clone().add(dx, dy, dz), 1, 0, 0, 0, 0);
+                }
+                // Purple/violet accretion disk swirling around the core
+                double swirlR = coreRadius * 1.9;
+                double phaseBase = (this.t * 0.35);
+                for (int i = 0; i < 40; i++) {
+                    double a = phaseBase + (i * (Math.PI * 2 / 40.0));
+                    double yOff = Math.sin(a * 2 + this.t * 0.2) * 0.25;
+                    Location pt = origin.clone().add(Math.cos(a) * swirlR, yOff, Math.sin(a) * swirlR);
+                    origin.getWorld().spawnParticle(
+                        Particle.DUST, pt, 1, 0, 0, 0, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(120, 30, 200), 2.0f)
+                    );
+                }
+                // Far halo of portal particles drifting inward
+                for (int i = 0; i < 25; i++) {
+                    double a = r.nextDouble() * Math.PI * 2;
+                    double rr = coreRadius * (2.5 + r.nextDouble() * 1.5);
+                    Location pt = origin.clone().add(Math.cos(a) * rr, (r.nextDouble() - 0.5) * 1.0, Math.sin(a) * rr);
+                    origin.getWorld().spawnParticle(Particle.PORTAL, pt, 1, 0, 0, 0, 0.4);
+                }
+
+                // --- Pull entities toward the core (each tick) ---
+                for (Entity e : origin.getWorld().getNearbyEntities(origin, pullRadius, pullRadius, pullRadius)) {
+                    if (!(e instanceof LivingEntity) || e == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                    Vector toCore = origin.toVector().subtract(e.getLocation().toVector());
+                    double dist = toCore.length();
+                    if (dist < 0.01) continue;
+                    double strength = Math.min(1.2, 0.6 + (1.0 - dist / pullRadius) * 0.9);
+                    Vector pull = toCore.normalize().multiply(strength);
+                    Vector vel = e.getVelocity().multiply(0.55).add(pull);
+                    e.setVelocity(vel);
+                }
+
+                // Subtle pulsing ambience
+                if (this.t % 10 == 0) {
+                    origin.getWorld().playSound(origin, Sound.BLOCK_BEACON_AMBIENT, 1.5f, 0.4f);
+                }
+
+                if (this.t >= lifeTicks) {
+                    this.cancel();
+                    // --- Collapse: explosion outward ---
+                    origin.getWorld().playSound(origin, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 0.7f);
+                    origin.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, origin, 1, 0, 0, 0, 0);
+                    origin.getWorld().spawnParticle(Particle.FLASH, origin, 2, 0.1, 0.1, 0.1, 0);
+                    for (int i = 0; i < 120; i++) {
+                        double a = AbilityManager.this.random.nextDouble() * Math.PI * 2;
+                        double rr = AbilityManager.this.random.nextDouble() * pullRadius;
+                        Location pt = origin.clone().add(Math.cos(a) * rr, AbilityManager.this.random.nextDouble() * 1.5, Math.sin(a) * rr);
+                        pt.getWorld().spawnParticle(
+                            Particle.DUST, pt, 1, 0, 0, 0, 0,
+                            (Object) new Particle.DustOptions(Color.fromRGB(160, 60, 230), 1.8f)
+                        );
+                    }
+                    for (Entity e : origin.getWorld().getNearbyEntities(origin, pullRadius, pullRadius, pullRadius)) {
+                        if (!(e instanceof LivingEntity) || e == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                        LivingEntity le = (LivingEntity) e;
+                        le.damage(dmg, (Entity) p);
+                        Vector out = le.getLocation().toVector().subtract(origin.toVector());
+                        if (out.lengthSquared() < 0.01) {
+                            out = new Vector(AbilityManager.this.random.nextDouble() - 0.5, 0, AbilityManager.this.random.nextDouble() - 0.5);
+                        }
+                        out = out.normalize().multiply(1.6).setY(flingY);
+                        le.setVelocity(out);
+                    }
                 }
             }
-        }.runTaskLater((Plugin)this.plugin, (long)this.cfgTicks("daggers.gravity.ability1.collapse-delay-seconds", 1.5));
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
-    private void gravityAbility2(Player p) {
-        double radius = this.cfgD("daggers.gravity.ability2.radius", 6.0);
-        int dur = this.cfgTicks("daggers.gravity.ability2.duration-seconds", 5.0);
-        int amp = this.cfgI("daggers.gravity.ability2.levitation-amplifier", 9);
+    private void gravityAbility2(final Player p) {
+        final double radius = this.cfgD("daggers.gravity.ability2.radius", 6.0);
+        final int dur = this.cfgTicks("daggers.gravity.ability2.duration-seconds", 5.0);
+        final int amp = this.cfgI("daggers.gravity.ability2.levitation-amplifier", 9);
+
+        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1.4f, 1.4f);
+
+        // Apply levitation to all hostile/non-trusted entities (not just players) in radius
         for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
-            if (!(e instanceof Player)) continue;
-            Player tp = (Player)e;
-            if (this.isTrustedEntity(p, e)) continue;
-            tp.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, dur, amp));
+            if (!(e instanceof LivingEntity) || e == p || this.isTrustedEntity(p, e)) continue;
+            ((LivingEntity) e).addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, dur, amp));
         }
+
+        // Visible purple radius ring on the ground around the player for the duration
+        new BukkitRunnable(){
+            int t = 0;
+            public void run() {
+                if (++this.t > dur || !p.isOnline()) {
+                    this.cancel();
+                    return;
+                }
+                Location base = p.getLocation();
+                java.util.Random r = AbilityManager.this.random;
+                // Solid ring on the ground (dense, every 2 deg)
+                int steps = 180;
+                double phase = this.t * 0.05;
+                for (int i = 0; i < steps; i++) {
+                    double a = (i * Math.PI * 2.0 / steps) + phase;
+                    double rx = Math.cos(a) * radius;
+                    double rz = Math.sin(a) * radius;
+                    Location pt = base.clone().add(rx, 0.1, rz);
+                    pt.getWorld().spawnParticle(
+                        Particle.DUST, pt, 1, 0, 0, 0, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(160, 50, 230), 1.5f)
+                    );
+                }
+                // Vertical purple "wall" pillars rising up around the ring
+                for (int i = 0; i < 24; i++) {
+                    double a = r.nextDouble() * Math.PI * 2;
+                    double rr = radius * (0.85 + r.nextDouble() * 0.2);
+                    double y = r.nextDouble() * 4.0;
+                    Location pt = base.clone().add(Math.cos(a) * rr, y, Math.sin(a) * rr);
+                    pt.getWorld().spawnParticle(
+                        Particle.DUST, pt, 1, 0, 0, 0, 0,
+                        (Object) new Particle.DustOptions(Color.fromRGB(180, 90, 255), 1.2f)
+                    );
+                }
+                // Inside puff of portal particles to sell the levitation
+                for (int i = 0; i < 18; i++) {
+                    double a = r.nextDouble() * Math.PI * 2;
+                    double rr = r.nextDouble() * radius;
+                    Location pt = base.clone().add(Math.cos(a) * rr, r.nextDouble() * 3.0, Math.sin(a) * rr);
+                    pt.getWorld().spawnParticle(Particle.PORTAL, pt, 1, 0, 0, 0, 0.2);
+                }
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
     }
 
     private void earthAbility1(Player p) {
