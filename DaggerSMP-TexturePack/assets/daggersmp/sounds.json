@@ -1,0 +1,16 @@
+{
+  "ability.frost.field":      { "sounds": [{ "name": "ability/frost.field",      "stream": false }] },
+  "ability.storm.bolt":       { "sounds": [{ "name": "ability/storm.bolt",       "stream": false }] },
+  "ability.wind.dash":        { "sounds": [{ "name": "ability/wind.dash",        "stream": false }] },
+  "ability.wind.leap":        { "sounds": [{ "name": "ability/wind.leap",        "stream": false }] },
+  "ability.pirate.wave":      { "sounds": [{ "name": "ability/pirate.wave",      "stream": false }] },
+  "ability.void.dash":        { "sounds": [{ "name": "ability/void.dash",        "stream": false }] },
+  "ability.gravity.blackhole":{ "sounds": [{ "name": "ability/gravity.blackhole","stream": false }] },
+  "ability.guardian.beam":    { "sounds": [{ "name": "ability/guardian.beam",    "stream": false }] },
+  "ability.ghost.dash":       { "sounds": [{ "name": "ability/ghost.dash",       "stream": false }] },
+  "ability.earth.boulder":    { "sounds": [{ "name": "ability/earth.boulder",    "stream": false }] },
+  "ability.darkness.sonic":   { "sounds": [{ "name": "ability/darkness.sonic",   "stream": false }] },
+  "ability.toxic.cloud":      { "sounds": [{ "name": "ability/toxic.cloud",      "stream": false }] },
+  "ability.vampire.heal":     { "sounds": [{ "name": "ability/vampire.heal",     "stream": false }] },
+  "ability.life.steal":       { "sounds": [{ "name": "ability/life.steal",       "stream": false }] }
+}

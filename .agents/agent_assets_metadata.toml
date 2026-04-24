@@ -156,6 +156,30 @@ uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_
 type = "image"
 title = "storm dagger"
 
+[[generated]]
+id = "kRdSddSGFFXpjtc9v-__c"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/particle/_gen_snowflake.png"
+type = "image"
+title = "snowflake particle"
+
+[[generated]]
+id = "ijkCNTR8qW9Omaklzb-Ts"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/particle/_gen_heart.png"
+type = "image"
+title = "heart particle"
+
+[[generated]]
+id = "C34GN-oQMr7nsev_AgcQq"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/particle/_gen_bubble.png"
+type = "image"
+title = "bubble particle"
+
+[[generated]]
+id = "2kJ9PCIQ1tL57MLRgKVI1"
+uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/particle/_gen_end_rod.png"
+type = "image"
+title = "end_rod particle retry"
+
 [[outputs]]
 id = "BE8fbNiPJJUtI4yXMcL6V"
 uri = "file://DaggerSMP-TexturePack.zip"

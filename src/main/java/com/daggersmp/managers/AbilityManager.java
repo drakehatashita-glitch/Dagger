@@ -708,7 +708,7 @@ public class AbilityManager {
         Vector dir = p.getLocation().getDirection().normalize().multiply(Math.max(1.5, dist * 0.12));
         p.setVelocity(dir);
         this.windFallDamageImmune.add(p.getUniqueId());
-        p.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1.0f, 1.5f);
+        p.playSound(p.getLocation(), "daggersmp:ability.wind.dash", 1.0f, 1.5f);
         new BukkitRunnable(){
 
             public void run() {
@@ -722,7 +722,7 @@ public class AbilityManager {
         double upward = this.cfgD("daggers.wind.ability2.launch-upward", 2.6);
         Vector dir = p.getLocation().getDirection();
         p.setVelocity(new Vector(dir.getX() * 0.6, upward, dir.getZ() * 0.6));
-        p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SHOOT, 1.0f, 1.5f);
+        p.playSound(p.getLocation(), "daggersmp:ability.wind.leap", 1.0f, 1.5f);
         final UUID uuid = p.getUniqueId();
         new BukkitRunnable(){
             int ticks = 0;
@@ -744,7 +744,7 @@ public class AbilityManager {
                     double radius = AbilityManager.this.cfgD("daggers.wind.ability2.shockwave-radius", 5.0);
                     Location loc = p.getLocation();
                     loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 30, radius * 0.4, 0.5, radius * 0.4, 0.0);
-                    loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.5f);
+                    loc.getWorld().playSound(loc, "daggersmp:ability.wind.leap", 1.0f, 1.5f);
                     for (Entity e : p.getNearbyEntities(radius, 3.0, radius)) {
                         LivingEntity le;
                         if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
@@ -838,7 +838,7 @@ public class AbilityManager {
         final Vector dir = start.getDirection().normalize();
         final double dmg = this.cfgD("daggers.darkness.ability2.beam-damage", 6.0);
         final double maxDist = this.cfgD("daggers.darkness.ability2.max-distance", 30.0);
-        p.getWorld().playSound(start, Sound.ENTITY_WARDEN_SONIC_BOOM, 2.0f, 1.0f);
+        p.getWorld().playSound(start, "daggersmp:ability.darkness.sonic", 2.0f, 1.0f);
         new BukkitRunnable(){
             double dist = 0.0;
             final Set<Entity> hit = new HashSet<Entity>();
@@ -946,7 +946,7 @@ public class AbilityManager {
                 }
             }.runTaskTimer((Plugin)this.plugin, 0L, 1L);
         }
-        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_POWDER_SNOW_PLACE, 2.0f, 1.0f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.frost.field", 2.0f, 1.0f);
     }
 
     private void frostAbility2(Player p) {
@@ -1015,8 +1015,8 @@ public class AbilityManager {
             Vector away = e.getLocation().toVector().subtract(p.getLocation().toVector()).setY(0).normalize().multiply(pushBlocks * 0.1);
             le.setVelocity(away.setY(0.4));
         }
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GENERIC_SPLASH, 1.6f, 0.7f);
-        p.getWorld().playSound(p.getLocation(), Sound.WEATHER_RAIN, 1.0f, 1.4f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.pirate.wave", 1.6f, 0.7f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.pirate.wave", 1.0f, 1.4f);
         final Location origin = p.getLocation().clone();
         final Vector forward = p.getLocation().getDirection().setY(0).normalize();
         new BukkitRunnable() {
@@ -1309,7 +1309,7 @@ public class AbilityManager {
         final int amp = this.cfgI("daggers.toxic.ability1.poison-amplifier", 2);
         final double radius = this.cfgD("daggers.toxic.ability1.radius", 5.0);
         final Location center = p.getLocation().add(0.0, 0.5, 0.0);
-        p.getWorld().playSound(center, Sound.ENTITY_WITCH_THROW, 1.2f, 0.8f);
+        p.getWorld().playSound(center, "daggersmp:ability.toxic.cloud", 1.2f, 0.8f);
 
         // Spawn an AreaEffectCloud entity at the center for built-in poison application
         org.bukkit.entity.AreaEffectCloud cloud = (org.bukkit.entity.AreaEffectCloud) p.getWorld()
@@ -1377,7 +1377,7 @@ public class AbilityManager {
     private void vampireAbility1(final Player p) {
         int dur = this.cfgTicks("daggers.vampire.ability1.duration-seconds", 8.0);
         p.setMetadata("dagger_vampire_heal", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WITHER_SHOOT, 1.0f, 1.5f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.vampire.heal", 1.0f, 1.5f);
         new BukkitRunnable(){
 
             public void run() {
@@ -1406,8 +1406,8 @@ public class AbilityManager {
             origin.add(0, 1.5, 0);
         }
 
-        p.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 2.0f, 0.4f);
-        p.getWorld().playSound(origin, Sound.BLOCK_PORTAL_AMBIENT, 1.6f, 0.3f);
+        p.getWorld().playSound(origin, "daggersmp:ability.gravity.blackhole", 2.0f, 0.4f);
+        p.getWorld().playSound(origin, "daggersmp:ability.gravity.blackhole", 1.6f, 0.3f);
 
         new BukkitRunnable(){
             int t = 0;
@@ -1462,13 +1462,13 @@ public class AbilityManager {
 
                 // Subtle pulsing ambience
                 if (this.t % 10 == 0) {
-                    origin.getWorld().playSound(origin, Sound.BLOCK_BEACON_AMBIENT, 1.5f, 0.4f);
+                    origin.getWorld().playSound(origin, "daggersmp:ability.gravity.blackhole", 1.5f, 0.4f);
                 }
 
                 if (this.t >= lifeTicks) {
                     this.cancel();
                     // --- Collapse: explosion outward ---
-                    origin.getWorld().playSound(origin, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 0.7f);
+                    origin.getWorld().playSound(origin, "daggersmp:ability.gravity.blackhole", 2.5f, 0.7f);
                     origin.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, origin, 1, 0, 0, 0, 0);
                     origin.getWorld().spawnParticle(Particle.FLASH, origin, 2, 0.1, 0.1, 0.1, 0);
                     for (int i = 0; i < 120; i++) {
@@ -1501,7 +1501,7 @@ public class AbilityManager {
         final int dur = this.cfgTicks("daggers.gravity.ability2.duration-seconds", 5.0);
         final int amp = this.cfgI("daggers.gravity.ability2.levitation-amplifier", 9);
 
-        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1.4f, 1.4f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.gravity.blackhole", 1.4f, 1.4f);
 
         // Apply levitation to all hostile/non-trusted entities (not just players) in radius
         for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
@@ -1624,7 +1624,7 @@ public class AbilityManager {
             tf.getRightRotation()
         );
         display.setTransformation(tf);
-        p.getWorld().playSound(spawnLoc, Sound.ENTITY_RAVAGER_ROAR, 1.4f, 0.7f);
+        p.getWorld().playSound(spawnLoc, "daggersmp:ability.earth.boulder", 1.4f, 0.7f);
         new BukkitRunnable(){
             int ticks = 0;
             public void run() {
@@ -1651,7 +1651,7 @@ public class AbilityManager {
                     impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 9, 1.0, 0.5, 1.0, 0.0);
                     impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 90, radius * 0.4, 0.5, radius * 0.4, 0.0);
                     impact.getWorld().spawnParticle(Particle.BLOCK, impact, 200, radius * 0.5, 0.5, radius * 0.5, Material.COBBLESTONE.createBlockData());
-                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.7f);
+                    impact.getWorld().playSound(impact, "daggersmp:ability.earth.boulder", 2.0f, 0.7f);
                     for (Entity e : impact.getWorld().getNearbyEntities(impact, radius, radius, radius)) {
                         LivingEntity le;
                         if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
@@ -1722,7 +1722,7 @@ public class AbilityManager {
         final double knock = this.cfgD("daggers.guardian.ability1.knockback", 0.12);
         final long maxTicks = this.cfgTicks("daggers.guardian.ability1.duration-seconds", 8.0);
         final double maxRange = this.cfgD("daggers.guardian.ability1.range", 30.0);
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 2.0f, 1.0f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.guardian.beam", 2.0f, 1.0f);
         BukkitRunnable beam = new BukkitRunnable(){
             int ticks = 0;
             public void run() {
@@ -1734,7 +1734,7 @@ public class AbilityManager {
                 }
                 // Periodic re-trigger of the guardian "fire" sound for the locked-on feel.
                 if (this.ticks % 30 == 1) {
-                    p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 1.5f, 1.0f);
+                    p.getWorld().playSound(p.getLocation(), "daggersmp:ability.guardian.beam", 1.5f, 1.0f);
                 }
                 Location start = p.getEyeLocation();
                 Vector dir = start.getDirection().normalize();
@@ -1814,7 +1814,7 @@ public class AbilityManager {
         p.setVelocity(new Vector(dir.getX() * power, Math.max(0.25, p.getVelocity().getY()), dir.getZ() * power));
         p.setFallDistance(0.0f);
         this.windFallDamageImmune.add(p.getUniqueId());
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 1.2f, 1.5f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.ghost.dash", 1.2f, 1.5f);
         new BukkitRunnable() {
             int t = 0;
             public void run() {
@@ -1838,7 +1838,7 @@ public class AbilityManager {
         p.setInvisible(true);
         p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, (int) ticks + 20, 0, false, false, false));
         p.setMetadata("dagger_ghost_noclip", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)true));
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_VEX_AMBIENT, 1.0f, 0.6f);
+        p.getWorld().playSound(p.getLocation(), "daggersmp:ability.ghost.dash", 1.0f, 0.6f);
         final BukkitRunnable trail = new BukkitRunnable(){
             public void run() {
                 if (!p.isOnline()) {
@@ -1939,7 +1939,7 @@ public class AbilityManager {
         final double durSec = this.cfgD("daggers.storm.ability2.duration-seconds", 5.0);
         final long boltIntervalTicks = (long) this.cfgD("daggers.storm.ability2.bolt-interval-ticks", 8.0);
         final Location anchor = p.getLocation().clone();
-        p.getWorld().playSound(anchor, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.5f, 1.0f);
+        p.getWorld().playSound(anchor, "daggersmp:ability.storm.bolt", 1.5f, 1.0f);
         new BukkitRunnable() {
             int ticks = 0;
             final long maxTicks = (long)(durSec * 20.0);
