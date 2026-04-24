@@ -1,11 +1,16 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "kcwz8rMdTrjkRG-fYmX6e"
+uri = "file://attached_assets/generated_images/dagger_master.png"
+type = "image"
+title = "fantasy dagger master template"
 
 [[outputs]]
 id = "BE8fbNiPJJUtI4yXMcL6V"
 uri = "file://DaggerSMP-TexturePack.zip"
 type = "unspecified"
-title = "DaggerSMP Texture Pack — 25 custom dagger textures (1.21.11)"
+title = "DaggerSMP Texture Pack — 25 fantasy daggers with themed auras"
 
 [[outputs]]
 id = "pzbKgh8nLgvaq79N-PC_t"

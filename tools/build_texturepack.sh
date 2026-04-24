@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
-# Builds the DaggerSMP texture pack with 25 custom-generated 2D dagger
-# textures (one per dagger) extruded into 3D in-hand via item/handheld.
+# Builds the DaggerSMP texture pack with 25 fantasy daggers — all sharing the
+# same ornate scimitar shape (matching the user's reference artwork), each
+# tinted with its own themed color and a matching radial glow aura.
 #
-# Pipeline:
-#   1. Write a themed SVG for each dagger (curved scythe blade silhouette).
-#   2. Rasterize SVG -> 64x64 PNG with ImageMagick.
-#   3. Write an item/handheld model JSON for each dagger (auto 3D extrude).
-#   4. Write daggersmp namespace item-model definitions used by the plugin's
-#      setItemModel(NamespacedKey("daggersmp","dagger/<id>")) call.
-#   5. Write a legacy CMD range_dispatch on netherite_sword.json as a fallback.
-#   6. Write pack.mcmeta using the new 1.21.9+ schema (min_format/max_format).
-#      Minecraft 1.21.11 = resource pack format 75.
-#   7. Bundle into a .zip via `jar` (no `zip` command in this nix env).
+# Pipeline per dagger:
+#   1. Take the AI-generated master dagger silhouette (ornate hilt + curved
+#      silver blade) from attached_assets/generated_images/dagger_master.png.
+#   2. Build a luminance mask isolating the blade (bright pixels) from the
+#      hilt (dark pixels) so we only recolor the blade.
+#   3. Tint the blade: pre-stretch the tonal range, then +level-colors maps
+#      black->BLADE (saturated theme color) and white->HIGHLIGHT (lighter
+#      theme color), giving the reference's "bright themed core, deeper
+#      themed edges" look while keeping the dark hilt unchanged.
+#   4. Build a soft two-pass aura: large soft outer glow + tighter inner bloom,
+#      both using the alpha silhouette blurred and tinted with AURA color.
+#   5. Composite back-to-front: outer aura -> inner bloom -> recolored dagger.
+#
+# Resource pack metadata uses 1.21.9+ schema (min_format/max_format).
+# Minecraft 1.21.11 = resource pack format 75.
 set -euo pipefail
 
+MASTER_SRC="attached_assets/generated_images/dagger_master.png"
 ROOT="DaggerSMP-TexturePack"
 OUT_ZIP="DaggerSMP-TexturePack.zip"
 ASSET="$ROOT/assets/minecraft"
@@ -21,84 +28,81 @@ TEX_DIR="$ASSET/textures/item/daggers"
 MODEL_DIR="$ASSET/models/item/daggers"
 ITEMS_DIR="$ASSET/items"
 DAG_ITEMS_DIR="$ROOT/assets/daggersmp/items/dagger"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+[[ -f "$MASTER_SRC" ]] || { echo "Missing $MASTER_SRC"; exit 1; }
 
 rm -rf "$ROOT" "$OUT_ZIP"
 mkdir -p "$TEX_DIR" "$MODEL_DIR" "$ITEMS_DIR" "$DAG_ITEMS_DIR"
 
-# id|cmd|main|edge|glow  (matches DaggerType.customModelData 1001..1025)
+# id|cmd|BLADE|HIGHLIGHT|AURA  (CMD = 1001..1025, matches DaggerType enum)
 DAGGERS=(
-  "strength|1001|#8B0000|#FF6840|#FF3010"
-  "speed|1002|#00B8E6|#A0F4FF|#40E0FF"
-  "wind|1003|#D8E8F0|#FFFFFF|#B0D8F0"
-  "life|1004|#1FA838|#A8FFB0|#40FF60"
-  "crimson|1005|#A8000C|#FF4030|#FF0010"
-  "darkness|1006|#1A0028|#5A2080|#7A20C0"
-  "hack|1007|#00B040|#A8FFB0|#00FF60"
-  "frost|1008|#5AB8E0|#D8F4FF|#80E8FF"
-  "mafia|1009|#A8741A|#FFCC60|#FFB020"
-  "pirate|1010|#1F4A8A|#80B0E0|#3070D0"
-  "void|1011|#5A0098|#C088FF|#9020E0"
-  "lucky|1012|#E8B810|#FFF098|#FFD040"
-  "mirror|1013|#9090A0|#F0F0FF|#C0C0D8"
-  "jungle|1014|#207820|#A0E058|#40C040"
-  "midas|1015|#E8A000|#FFE060|#FFB820"
-  "toxic|1016|#60B820|#D8FF80|#A0FF40"
-  "arachnid|1017|#202028|#605070|#A02050"
-  "vampire|1018|#580010|#E03040|#A00018"
-  "gravity|1019|#7868C8|#D0C0FF|#9080F0"
-  "earth|1020|#5A3818|#B08858|#80502A"
-  "titan|1021|#C03018|#FF8050|#FF5030"
-  "guardian|1022|#1AA890|#80F0D8|#30E0C0"
-  "ghost|1023|#A0B8D0|#FFFFFF|#D8E8FF"
-  "chance|1024|#C030A0|#FFA0E0|#F050C0"
-  "storm|1025|#E8C820|#FFF880|#FFE040"
+  "strength|1001|#D02010|#FFB098|#FF6840"
+  "speed|1002|#10A8E0|#C0F0FF|#A0F4FF"
+  "wind|1003|#A8C8E0|#FFFFFF|#D8E8F0"
+  "life|1004|#28C048|#C0FFC8|#A8FFB0"
+  "crimson|1005|#D81020|#FF8070|#FF4030"
+  "darkness|1006|#7028B0|#B080E0|#5A2080"
+  "hack|1007|#10D058|#A8FFB8|#A8FFB0"
+  "frost|1008|#60D0F0|#E8F8FF|#D8F4FF"
+  "mafia|1009|#D89020|#FFE098|#FFCC60"
+  "pirate|1010|#3070D0|#A0C8F0|#80B0E0"
+  "void|1011|#9020E0|#E8C8FF|#C088FF"
+  "lucky|1012|#F0C820|#FFF8B0|#FFF098"
+  "mirror|1013|#B0B0C0|#FFFFFF|#F0F0FF"
+  "jungle|1014|#28A028|#C0FF80|#A0E058"
+  "midas|1015|#FFB820|#FFEC98|#FFE060"
+  "toxic|1016|#80E020|#E0FFB0|#D8FF80"
+  "arachnid|1017|#A02050|#FF80B0|#605070"
+  "vampire|1018|#C01828|#FF6068|#E03040"
+  "gravity|1019|#9080F0|#E0D8FF|#D0C0FF"
+  "earth|1020|#8B5A2B|#D8B080|#B08858"
+  "titan|1021|#E04020|#FFB098|#FF8050"
+  "guardian|1022|#28D8B8|#A8FFE0|#80F0D8"
+  "ghost|1023|#C0D0E0|#FFFFFF|#FFFFFF"
+  "chance|1024|#E040C0|#FFB0E8|#FFA0E0"
+  "storm|1025|#FFE040|#FFFCB0|#FFF880"
 )
 
-write_svg() {
-  local out="$1" main="$2" edge="$3" glow="$4"
-  cat > "$out" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges">
-  <defs>
-    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"  stop-color="${edge}"/>
-      <stop offset="55%" stop-color="${main}"/>
-      <stop offset="100%" stop-color="${glow}"/>
-    </linearGradient>
-    <linearGradient id="bladeEdge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"  stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="${edge}"/>
-    </linearGradient>
-    <linearGradient id="hilt" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"  stop-color="#3a2a18"/>
-      <stop offset="50%" stop-color="#1a0f08"/>
-      <stop offset="100%" stop-color="#000000"/>
-    </linearGradient>
-  </defs>
-  <path d="M 14 14 Q 36 18 54 28 Q 60 32 58 38 Q 50 38 40 36 Q 26 30 14 22 Z"
-        fill="url(#blade)" stroke="${main}" stroke-width="0.8"/>
-  <path d="M 16 16 Q 36 20 52 28 Q 58 31 56 35 Q 48 34 38 31 Q 26 26 16 20 Z"
-        fill="url(#bladeEdge)" opacity="0.55"/>
-  <path d="M 18 18 Q 32 22 46 28 Q 40 28 30 26 Q 22 22 18 20 Z"
-        fill="${main}" opacity="0.7"/>
-  <rect x="6"  y="6"  width="14" height="6"  rx="1" fill="url(#hilt)" stroke="#000" stroke-width="0.5"/>
-  <rect x="4"  y="8"  width="4"  height="4"        fill="#1a0f08"     stroke="#000" stroke-width="0.4"/>
-  <rect x="18" y="4"  width="4"  height="10"       fill="url(#hilt)"  stroke="#000" stroke-width="0.5"/>
-  <circle cx="20"   cy="11"   r="2.2" fill="#c00010" stroke="#400000" stroke-width="0.4"/>
-  <circle cx="19.4" cy="10.4" r="0.7" fill="#ff8080"/>
-  <circle cx="58"   cy="38"   r="1.6" fill="${glow}" opacity="0.85"/>
-</svg>
-EOF
-}
+# Pre-process master once: trim transparent borders, fit centered on a square
+# canvas so all daggers share identical layout.
+MASTER="$WORK/master.png"
+magick "$MASTER_SRC" -trim +repage -resize 480x480\> -background none \
+       -gravity center -extent 512x512 "$MASTER"
 
-echo "Generating 25 dagger textures + models..."
+# Reusable: alpha silhouette + blade luminance mask (constant across daggers).
+magick "$MASTER" -alpha extract "$WORK/orig_alpha.png"
+magick "$MASTER" -alpha off -colorspace gray -threshold 50% "$WORK/mask_raw.png"
+magick "$WORK/mask_raw.png" "$WORK/orig_alpha.png" -compose multiply -composite \
+       "$WORK/blade_mask.png"
+
+echo "Generating 25 daggers..."
 for row in "${DAGGERS[@]}"; do
-  IFS='|' read -r id cmd main edge glow <<< "$row"
-  svg="$TEX_DIR/$id.svg"
-  png="$TEX_DIR/$id.png"
-  write_svg "$svg" "$main" "$edge" "$glow"
-  magick -background none "$svg" -resize 64x64 "$png"
-  rm "$svg"
+  IFS='|' read -r id cmd BLADE HIGHLIGHT AURA <<< "$row"
+
+  # Tinted blade (whole image): stretch tonal range, then map black->BLADE,
+  # white->HIGHLIGHT. Hilt becomes tinted but we'll mask it back to original.
+  magick "$MASTER" -level 25%x95% +level-colors "$BLADE,$HIGHLIGHT" \
+         "$WORK/tinted_full.png"
+  # Compose: where blade_mask is white use tinted, else keep original (hilt).
+  magick "$MASTER" "$WORK/tinted_full.png" "$WORK/blade_mask.png" \
+         -compose over -composite "$WORK/recolored.png"
+
+  # Soft two-pass aura.
+  magick "$WORK/orig_alpha.png" -blur 0x40 -evaluate Multiply 0.6 \
+         "$WORK/outer_a.png"
+  magick "$WORK/orig_alpha.png" -blur 0x12 -evaluate Multiply 0.9 \
+         "$WORK/inner_a.png"
+  magick -size 512x512 xc:"$AURA" "$WORK/outer_a.png" -alpha off \
+         -compose copy_opacity -composite "$WORK/outer.png"
+  magick -size 512x512 xc:"$AURA" "$WORK/inner_a.png" -alpha off \
+         -compose copy_opacity -composite "$WORK/inner.png"
+
+  # Composite back-to-front, downsize to 256x256 final texture.
+  magick "$WORK/outer.png" "$WORK/inner.png" -compose over -composite \
+         "$WORK/recolored.png" -compose over -composite \
+         -resize 256x256 "$TEX_DIR/$id.png"
 
   # Per-dagger handheld model (vanilla auto-3D extrusion of the 2D texture).
   cat > "$MODEL_DIR/$id.json" <<JSON
@@ -108,8 +112,9 @@ for row in "${DAGGERS[@]}"; do
 }
 JSON
 
-  # Modern item_model definition under daggersmp namespace.
-  # Plugin sets item_model = daggersmp:dagger/<id>, client looks up this file.
+  # Modern item_model definition under the daggersmp namespace. The plugin
+  # calls setItemModel(NamespacedKey("daggersmp","dagger/<id>")), which makes
+  # the client look up exactly this file.
   cat > "$DAG_ITEMS_DIR/$id.json" <<JSON
 {
   "model": {
@@ -118,10 +123,13 @@ JSON
   }
 }
 JSON
-done
 
-# Legacy fallback: CMD range_dispatch on netherite_sword (works pre-1.21.4
-# and as a backup if any item somehow lacks the item_model component).
+  printf '.'
+done
+echo
+
+# Legacy fallback: CMD range_dispatch on the base netherite_sword item
+# definition, in case any dagger ever lacks the item_model component.
 {
   echo '{'
   echo '  "model": {'
@@ -142,7 +150,7 @@ done
   echo '}'
 } > "$ITEMS_DIR/netherite_sword.json"
 
-# Validate every JSON we produced.
+# Validate JSON.
 jq . "$ITEMS_DIR/netherite_sword.json" > /dev/null
 for row in "${DAGGERS[@]}"; do
   IFS='|' read -r id _ _ _ _ <<< "$row"
@@ -150,21 +158,21 @@ for row in "${DAGGERS[@]}"; do
   jq . "$DAG_ITEMS_DIR/$id.json" > /dev/null
 done
 
-# pack.mcmeta — Minecraft 1.21.11 = resource pack format 75. Since 1.21.9+
-# the schema uses min_format / max_format (NOT pack_format); using the old
-# field on 1.21.11 makes the client silently treat the pack as invalid.
+# pack.mcmeta — Minecraft 1.21.11 = resource pack format 75. The 1.21.9+
+# schema uses min_format/max_format (NOT pack_format); using the old field on
+# 1.21.11 makes the client silently treat the pack as invalid.
 cat > "$ROOT/pack.mcmeta" <<'JSON'
 {
   "pack": {
     "min_format": 75,
     "max_format": 75,
-    "description": "§cDaggerSMP §7— 25 unique 3D daggers"
+    "description": "§cDaggerSMP §7— 25 fantasy daggers with themed auras"
   }
 }
 JSON
 
-# Pack icon (use the strength dagger as the cover art).
-magick "$TEX_DIR/strength.png" -resize 128x128 "$ROOT/pack.png"
+# Pack icon: use the void dagger as cover art.
+magick "$TEX_DIR/void.png" -resize 128x128 "$ROOT/pack.png"
 
 # Bundle as zip via jar (no `zip` cmd in this nix env).
 ( cd "$ROOT" && jar cf "../$OUT_ZIP" . )
