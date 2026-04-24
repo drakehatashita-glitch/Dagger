@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "weapons/bone_blade"
+    "model": "minecraft:item/daggers/jungle"
   }
 }

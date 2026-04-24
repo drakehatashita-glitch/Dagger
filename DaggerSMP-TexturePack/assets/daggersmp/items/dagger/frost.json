@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "weapons/frost"
+    "model": "minecraft:item/daggers/frost"
   }
 }

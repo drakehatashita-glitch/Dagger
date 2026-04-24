@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "weapons/hyperion"
+    "model": "minecraft:item/daggers/mafia"
   }
 }

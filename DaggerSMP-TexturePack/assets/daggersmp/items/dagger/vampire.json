@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "custom/vampire"
+    "model": "minecraft:item/daggers/vampire"
   }
 }

@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "weapons/arc3/witherbone"
+    "model": "minecraft:item/daggers/toxic"
   }
 }

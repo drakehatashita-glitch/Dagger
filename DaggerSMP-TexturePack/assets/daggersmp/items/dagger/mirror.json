@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "weapons/illusion_wand"
+    "model": "minecraft:item/daggers/mirror"
   }
 }

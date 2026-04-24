@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "weapons/arc5/mace/lv3"
+    "model": "minecraft:item/daggers/midas"
   }
 }

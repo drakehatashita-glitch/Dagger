@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "custom/pale"
+    "model": "minecraft:item/daggers/ghost"
   }
 }
