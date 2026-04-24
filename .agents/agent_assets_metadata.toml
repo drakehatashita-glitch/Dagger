@@ -106,7 +106,7 @@ title = "toxic dagger"
 id = "_0Y_SUpG_MCoq4uzY0ZLb"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_arachnid.png"
 type = "image"
-title = "arachnid dagger"
+title = "arachnid dagger v2"
 
 [[generated]]
 id = "LFpH6VZ_MtxyIDotsNbfH"
@@ -142,7 +142,7 @@ title = "guardian dagger"
 id = "JBi0wlTwiJ8Q7jS2OCv9c"
 uri = "file://DaggerSMP-TexturePack/assets/minecraft/textures/item/daggers/_gen_ghost.png"
 type = "image"
-title = "ghost dagger"
+title = "ghost dagger v2"
 
 [[generated]]
 id = "5iITcL5oB3OXvCcx6KtC_"
