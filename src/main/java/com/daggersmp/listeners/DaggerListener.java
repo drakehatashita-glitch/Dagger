@@ -54,6 +54,7 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -284,12 +285,13 @@ implements Listener {
                     vTgt.sendMessage("\u00a74You're bleeding!");
                 }
             }
-            if (am.hasDaggerAnywhere(p, DaggerType.STORM)) {
-                double chance3 = this.plugin.getConfig().getDouble("daggers.storm.passive.lightning-chance-on-hit", 0.05);
-                if (Math.random() < chance3) {
-                    target.getWorld().strikeLightning(target.getLocation());
-                    target.damage(this.plugin.getConfig().getDouble("daggers.storm.passive.lightning-damage", 4.0), (Entity)p);
-                }
+        }
+        // Storm passive: lightning on hit (NOT gated by attack-charge — dagger swings need this to fire too).
+        if (am.hasDaggerAnywhere(p, DaggerType.STORM)) {
+            double chance3 = this.plugin.getConfig().getDouble("daggers.storm.passive.lightning-chance-on-hit", 0.05);
+            if (Math.random() < chance3) {
+                target.getWorld().strikeLightning(target.getLocation());
+                target.damage(this.plugin.getConfig().getDouble("daggers.storm.passive.lightning-damage", 4.0), (Entity)p);
             }
         }
         if (am.hasDaggerAnywhere(p, DaggerType.MIRROR) && target instanceof Player) {
@@ -367,10 +369,19 @@ implements Listener {
                     double dmgPerBlock = this.plugin.getConfig().getDouble("daggers.gravity.passive.damage-per-block", 0.5);
                     double maxDmg = this.plugin.getConfig().getDouble("daggers.gravity.passive.max-damage", 10.0);
                     double dmg = Math.min(maxDmg, (double)p.getFallDistance() * dmgPerBlock);
+                    Location impact = p.getLocation();
+                    float power = (float) this.plugin.getConfig().getDouble("daggers.gravity.passive.explosion-power", 2.5);
+                    boolean breakBlocks = this.plugin.getConfig().getBoolean("daggers.gravity.passive.explosion-break-blocks", false);
+                    impact.getWorld().createExplosion(impact, power, false, breakBlocks, p);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, impact, 3, 0.6, 0.2, 0.6, 0.0);
+                    impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 40, radius2 * 0.3, 0.2, radius2 * 0.3, 0.0);
+                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.6f, 0.85f);
                     for (Entity en : p.getNearbyEntities(radius2, radius2, radius2)) {
                         LivingEntity le;
                         if (!(en instanceof LivingEntity) || (le = (LivingEntity)en) == p || am.isTrustedEntity(p, en)) continue;
                         le.damage(dmg, (Entity)p);
+                        org.bukkit.util.Vector kb = le.getLocation().toVector().subtract(impact.toVector()).normalize().multiply(0.8).setY(0.45);
+                        le.setVelocity(kb);
                     }
                 }
             }

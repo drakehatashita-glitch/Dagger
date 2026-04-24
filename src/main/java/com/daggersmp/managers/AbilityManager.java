@@ -1495,8 +1495,11 @@ public class AbilityManager {
     }
 
     private void earthAbility2(final Player p) {
-        final Location spawnLoc = p.getEyeLocation().add(p.getLocation().getDirection().normalize().multiply(2));
-        Vector vel = p.getLocation().getDirection().normalize().multiply(1.8).setY(0.45);
+        final Vector launchDir = p.getEyeLocation().getDirection().normalize();
+        final Location spawnLoc = p.getEyeLocation().add(launchDir.clone().multiply(2));
+        final double launchSpeed = this.cfgD("daggers.earth.ability2.launch-speed", 2.4);
+        // Straight-line shot: no upward Y boost. Gravity will pull it down naturally over distance.
+        Vector vel = launchDir.clone().multiply(launchSpeed);
         final double dmg = this.cfgD("daggers.earth.ability2.boulder-damage", 12.0);
         final double radius = this.cfgD("daggers.earth.ability2.radius", 7.0);
         final float boulderScale = (float) this.cfgD("daggers.earth.ability2.scale", 3.0);
@@ -1504,6 +1507,8 @@ public class AbilityManager {
         boulder.setVelocity(vel);
         boulder.setDropItem(false);
         boulder.setHurtEntities(true);
+        // Reduce gravity so the trajectory has only a SLIGHT downward arc instead of a high arc.
+        try { boulder.setGravity(true); } catch (Throwable ignored) {}
         boulder.setMetadata("dagger_earth_boulder", (MetadataValue)new FixedMetadataValue((Plugin)this.plugin, (Object)p.getUniqueId().toString()));
         final org.bukkit.entity.BlockDisplay display = (org.bukkit.entity.BlockDisplay) p.getWorld().spawnEntity(spawnLoc, EntityType.BLOCK_DISPLAY);
         display.setBlock(Material.COBBLESTONE.createBlockData());
@@ -1521,13 +1526,21 @@ public class AbilityManager {
             int ticks = 0;
             public void run() {
                 ++this.ticks;
+                boolean entityHit = false;
                 if (boulder.isValid()) {
                     Location bl = boulder.getLocation();
                     display.teleport(bl);
-                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.add(0, 0.5, 0), 24, boulderScale * 0.4, boulderScale * 0.4, boulderScale * 0.4, Material.COBBLESTONE.createBlockData());
+                    bl.getWorld().spawnParticle(Particle.BLOCK, bl.clone().add(0, 0.5, 0), 24, boulderScale * 0.4, boulderScale * 0.4, boulderScale * 0.4, Material.COBBLESTONE.createBlockData());
                     bl.getWorld().spawnParticle(Particle.LARGE_SMOKE, bl, 9, 0.3, 0.3, 0.3, 0.02);
+                    // Detonate on direct entity contact mid-flight.
+                    for (Entity near : bl.getWorld().getNearbyEntities(bl, 1.5, 1.5, 1.5)) {
+                        if (near == p || near == boulder || near == display || !(near instanceof LivingEntity)) continue;
+                        if (AbilityManager.this.isTrustedEntity(p, near)) continue;
+                        entityHit = true;
+                        break;
+                    }
                 }
-                if (this.ticks > 200 || !boulder.isValid()) {
+                if (this.ticks > 200 || !boulder.isValid() || entityHit) {
                     Location impact = boulder.isValid() ? boulder.getLocation() : spawnLoc;
                     boulder.remove();
                     display.remove();
@@ -1787,11 +1800,27 @@ public class AbilityManager {
                 }
                 AbilityManager.this.chanceActiveDagger.remove(uuid);
                 AbilityManager.this.chanceEndTime.remove(uuid);
-                ItemStack held = player.getInventory().getItem(fslot);
-                if (DaggerType.fromItem(held) == picked) {
-                    player.getInventory().setItem(fslot, null);
+                // Restore the original CHANCE dagger to the slot the transformed item is currently in.
+                int restoreSlot = -1;
+                ItemStack atOriginal = player.getInventory().getItem(fslot);
+                if (DaggerType.fromItem(atOriginal) == picked) {
+                    restoreSlot = fslot;
+                } else {
+                    // Player may have moved the transformed item; find it anywhere in the inventory.
+                    for (int i = 0; i < player.getInventory().getSize(); ++i) {
+                        if (DaggerType.fromItem(player.getInventory().getItem(i)) == picked) {
+                            restoreSlot = i;
+                            break;
+                        }
+                    }
                 }
-                player.sendMessage("\u00a7dTransformation ended.");
+                if (restoreSlot >= 0) {
+                    player.getInventory().setItem(restoreSlot, DaggerType.CHANCE.createItem());
+                } else {
+                    // Transformed dagger was lost (dropped/destroyed). Drop a Chance Dagger at the player so they don't lose it permanently.
+                    player.getWorld().dropItemNaturally(player.getLocation(), DaggerType.CHANCE.createItem());
+                }
+                player.sendMessage("\u00a7dTransformation ended \u2014 your Chance Dagger returns.");
             }
         }.runTaskLater((Plugin)this.plugin, ms / 50L);
     }
@@ -1811,16 +1840,49 @@ public class AbilityManager {
         p.sendMessage("\u00a7eLightning struck " + tgt.getName() + "!");
     }
 
-    private void stormAbility2(Player p) {
-        double dmg = this.cfgD("daggers.storm.ability2.damage", 4.0);
-        double radius = this.cfgD("daggers.storm.ability2.radius", 5.0);
-        for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
-            LivingEntity le;
-            if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || this.isTrustedEntity(p, e)) continue;
-            e.getWorld().strikeLightning(e.getLocation());
-            le.damage(dmg, (Entity)p);
-        }
-        p.sendMessage("\u00a7eStorm bolts unleashed!");
+    private void stormAbility2(final Player p) {
+        final double dmg = this.cfgD("daggers.storm.ability2.damage", 4.0);
+        final double radius = this.cfgD("daggers.storm.ability2.radius", 5.0);
+        final double durSec = this.cfgD("daggers.storm.ability2.duration-seconds", 5.0);
+        final long boltIntervalTicks = (long) this.cfgD("daggers.storm.ability2.bolt-interval-ticks", 8.0);
+        final Location anchor = p.getLocation().clone();
+        p.sendMessage("\u00a7eStorm summoned \u2014 lightning rains around you for " + (int) durSec + "s!");
+        p.getWorld().playSound(anchor, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.5f, 1.0f);
+        new BukkitRunnable() {
+            int ticks = 0;
+            final long maxTicks = (long)(durSec * 20.0);
+            public void run() {
+                this.ticks += (int) boltIntervalTicks;
+                if (this.ticks > this.maxTicks) {
+                    this.cancel();
+                    return;
+                }
+                // Re-anchor the storm to the player's CURRENT position so it follows them.
+                Location center = p.isOnline() ? p.getLocation() : anchor;
+                double angle = AbilityManager.this.random.nextDouble() * Math.PI * 2.0;
+                double dist = AbilityManager.this.random.nextDouble() * radius;
+                double dx = Math.cos(angle) * dist;
+                double dz = Math.sin(angle) * dist;
+                Location strike = center.clone().add(dx, 0, dz);
+                // Find the highest non-passable block underfoot so the bolt grounds correctly.
+                int sy = strike.getBlockY();
+                for (int y = sy + 6; y >= sy - 8; --y) {
+                    Location probe = new Location(strike.getWorld(), strike.getX(), y, strike.getZ());
+                    if (!probe.getBlock().isPassable()) {
+                        strike = new Location(strike.getWorld(), strike.getX(), y + 1, strike.getZ());
+                        break;
+                    }
+                }
+                strike.getWorld().strikeLightningEffect(strike);
+                strike.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, strike, 40, 0.6, 0.4, 0.6, 0.2);
+                strike.getWorld().spawnParticle(Particle.FLASH, strike, 1, 0.0, 0.0, 0.0, 0.0);
+                for (Entity e : strike.getWorld().getNearbyEntities(strike, 2.5, 3.0, 2.5)) {
+                    LivingEntity le;
+                    if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                    le.damage(dmg, (Entity) p);
+                }
+            }
+        }.runTaskTimer((Plugin)this.plugin, 0L, boltIntervalTicks);
     }
 
     public boolean hasDaggerAnywhere(Player player, DaggerType type) {
