@@ -1,83 +1,202 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  org.bukkit.Material
- *  org.bukkit.NamespacedKey
- *  org.bukkit.inventory.ItemStack
- *  org.bukkit.inventory.Recipe
- *  org.bukkit.inventory.ShapedRecipe
- *  org.bukkit.plugin.Plugin
- */
 package com.daggersmp.managers;
 
 import com.daggersmp.DaggerSMP;
 import com.daggersmp.daggers.DaggerType;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.plugin.Plugin;
 
 public class DaggerManager {
+    private static final Object ANY = new Object();
+
     private final DaggerSMP plugin;
-    private final Map<DaggerType, Material[]> recipeMaterials = new HashMap<DaggerType, Material[]>();
+    private final Map<DaggerType, Object[]> recipeMaterials = new HashMap<>();
+    private RecipeChoice anyItemChoice;
 
     public DaggerManager(DaggerSMP plugin) {
         this.plugin = plugin;
     }
 
     public void registerRecipes() {
-        this.rec(DaggerType.LIFE, Material.MELON_SLICE, Material.ENCHANTED_GOLDEN_APPLE, Material.ARMOR_STAND, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.ARMOR_STAND, Material.NETHERITE_CHESTPLATE, Material.ELYTRA);
-        this.rec(DaggerType.WIND, Material.FEATHER, Material.ENCHANTED_GOLDEN_APPLE, Material.DIAMOND_BLOCK, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.ENCHANTED_BOOK, Material.OBSERVER, Material.AMETHYST_SHARD);
-        this.rec(DaggerType.SPEED, Material.LEATHER_BOOTS, Material.ENCHANTED_GOLDEN_APPLE, Material.SHIELD, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.SUGAR, Material.COOKIE, Material.FLINT);
-        this.rec(DaggerType.CRIMSON, Material.BLACKSTONE_SLAB, Material.ENCHANTED_GOLDEN_APPLE, Material.NETHER_WART_BLOCK, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.CRIMSON_NYLIUM, Material.WITHER_ROSE, Material.SOUL_SAND);
-        this.rec(DaggerType.DARKNESS, Material.SCULK_CATALYST, Material.ENCHANTED_GOLDEN_APPLE, Material.SCULK_SENSOR, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.ECHO_SHARD, Material.CALIBRATED_SCULK_SENSOR, Material.SCULK_SHRIEKER);
-        this.rec(DaggerType.HACK, Material.ENDER_EYE, Material.ENCHANTED_GOLDEN_APPLE, Material.TORCH, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.DIAMOND_PICKAXE, Material.RECOVERY_COMPASS, Material.BEACON);
-        this.rec(DaggerType.FROST, Material.SNOW_BLOCK, Material.ENCHANTED_GOLDEN_APPLE, Material.BEACON, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.ICE, Material.STICK, Material.SNOW_BLOCK);
-        this.rec(DaggerType.MAFIA, Material.MOSS_BLOCK, Material.ENCHANTED_GOLDEN_APPLE, Material.STICK, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.NAUTILUS_SHELL, Material.TOTEM_OF_UNDYING, Material.SPIDER_EYE);
-        this.rec(DaggerType.STRENGTH, Material.FURNACE, Material.ENCHANTED_GOLDEN_APPLE, Material.NETHERRACK, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.FIRE_CHARGE, Material.ANVIL, Material.STICK);
-        this.rec(DaggerType.PIRATE, Material.ELYTRA, Material.ENCHANTED_GOLDEN_APPLE, Material.ARROW, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.HEART_OF_THE_SEA, Material.LIME_DYE, Material.SLIME_BALL);
-        this.rec(DaggerType.VOID, Material.OBSIDIAN, Material.ENCHANTED_GOLDEN_APPLE, Material.POTION, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.ELYTRA, Material.NETHERITE_LEGGINGS, Material.AMETHYST_SHARD);
-        this.rec(DaggerType.LUCKY, Material.MOSS_BLOCK, Material.ENCHANTED_GOLDEN_APPLE, Material.MOSS_BLOCK, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.SCULK, Material.SLIME_BLOCK, Material.EMERALD_BLOCK);
-        this.rec(DaggerType.MIRROR, Material.MUD, Material.ENCHANTED_GOLDEN_APPLE, Material.SHIELD, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.STONE, Material.BLACKSTONE, Material.ENDER_EYE);
-        this.rec(DaggerType.JUNGLE, Material.MOSS_BLOCK, Material.ENCHANTED_GOLDEN_APPLE, Material.VINE, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.MOSS_CARPET, Material.STONE, Material.VINE);
-        this.rec(DaggerType.MIDAS, Material.DISPENSER, Material.ENCHANTED_GOLDEN_APPLE, Material.GOLD_NUGGET, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.GOLD_INGOT, Material.NAUTILUS_SHELL, Material.GOLD_BLOCK);
-        this.rec(DaggerType.TOXIC, Material.POISONOUS_POTATO, Material.ENCHANTED_GOLDEN_APPLE, Material.POTION, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.STICK, Material.MUSHROOM_STEW, Material.SLIME_BALL);
-        this.rec(DaggerType.ARACHNID, Material.FERMENTED_SPIDER_EYE, Material.ENCHANTED_GOLDEN_APPLE, Material.SHIELD, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.DIAMOND_BLOCK, Material.COBWEB, Material.FEATHER);
-        this.rec(DaggerType.VAMPIRE, Material.LEATHER_CHESTPLATE, Material.ENCHANTED_GOLDEN_APPLE, Material.SHIELD, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.ARMOR_STAND, Material.IRON_BLOCK, Material.REDSTONE);
-        this.rec(DaggerType.GRAVITY, Material.ENDER_PEARL, Material.ENCHANTED_GOLDEN_APPLE, Material.BUCKET, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.PISTON, Material.DISPENSER, Material.AMETHYST_SHARD);
-        this.rec(DaggerType.EARTH, Material.DIAMOND_ORE, Material.ENCHANTED_GOLDEN_APPLE, Material.DIAMOND_BLOCK, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.MOSS_BLOCK, Material.COAL_BLOCK, Material.DIRT);
-        this.rec(DaggerType.TITAN, Material.NETHERITE_LEGGINGS, Material.ENCHANTED_GOLDEN_APPLE, Material.IRON_LEGGINGS, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLAZE_ROD, Material.IRON_CHESTPLATE, Material.DIAMOND_PICKAXE, Material.LEATHER_BOOTS);
-        this.rec(DaggerType.GUARDIAN, Material.EMERALD, Material.ENCHANTED_GOLDEN_APPLE, Material.SPONGE, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.DIAMOND_PICKAXE, Material.DIAMOND, Material.PRISMARINE_SHARD);
-        this.rec(DaggerType.GHOST, Material.CANDLE, Material.ENCHANTED_GOLDEN_APPLE, Material.SOUL_LANTERN, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.POTION, Material.WRITTEN_BOOK, Material.DIAMOND_BLOCK);
-        this.rec(DaggerType.CHANCE, Material.SHIELD, Material.ENCHANTED_GOLDEN_APPLE, Material.SCULK_CATALYST, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.BARREL, Material.OBSIDIAN, Material.BEACON);
-        this.rec(DaggerType.STORM, Material.SHIELD, Material.ENCHANTED_GOLDEN_APPLE, Material.ARROW, Material.PRISMARINE_CRYSTALS, Material.IRON_SWORD, Material.BLACKSTONE, Material.SLIME_BLOCK, Material.STICK, Material.SLIME_BALL);
+        rec(DaggerType.STRENGTH,
+            Material.ANCIENT_DEBRIS,        Material.ENCHANTED_GOLDEN_APPLE, Material.NAUTILUS_SHELL,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.GILDED_BLACKSTONE,
+            Material.BLAZE_POWDER,          Material.NETHERITE_INGOT,        Material.NETHERITE_AXE);
+
+        rec(DaggerType.SPEED,
+            Material.NETHERITE_BOOTS,       Material.ENCHANTED_GOLDEN_APPLE, Material.NAUTILUS_SHELL,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NETHERITE_INGOT,
+            Material.SUGAR,                 Material.RABBIT_FOOT,            Material.DIAMOND_HORSE_ARMOR);
+
+        rec(DaggerType.WIND,
+            Material.FEATHER,               Material.ENCHANTED_GOLDEN_APPLE, Material.DIAMOND_BLOCK,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NETHERITE_INGOT,
+            Material.BOLT_ARMOR_TRIM_SMITHING_TEMPLATE, Material.HEAVY_CORE, Material.FLOW_ARMOR_TRIM_SMITHING_TEMPLATE);
+
+        rec(DaggerType.LIFE,
+            Material.GLISTERING_MELON_SLICE, Material.ENCHANTED_GOLDEN_APPLE, Material.TOTEM_OF_UNDYING,
+            Material.NETHER_STAR,            Material.NETHERITE_SWORD,        Material.TOTEM_OF_UNDYING,
+            Material.NETHERITE_CHESTPLATE,   Material.VEX_ARMOR_TRIM_SMITHING_TEMPLATE, Material.CRIMSON_PLANKS);
+
+        rec(DaggerType.CRIMSON,
+            Material.WITHER_SKELETON_SKULL, Material.ENCHANTED_GOLDEN_APPLE, Material.CRIMSON_HYPHAE,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NETHERITE_INGOT,
+            Material.RED_NETHER_BRICKS,     Material.WITHER_ROSE,            Material.WITHER_SKELETON_SKULL);
+
+        rec(DaggerType.DARKNESS,
+            Material.SCULK_SHRIEKER,        Material.ENCHANTED_GOLDEN_APPLE, Material.SCULK_SENSOR,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NETHERITE_INGOT,
+            Material.SCULK_VEIN,            Material.MUSIC_DISC_5,           Material.SCULK_CATALYST);
+
+        rec(DaggerType.HACK,
+            Material.ENDER_EYE,             Material.ENCHANTED_GOLDEN_APPLE, Material.SPYGLASS,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NETHERITE_INGOT,
+            Material.NETHERITE_PICKAXE,     Material.RECOVERY_COMPASS,       Material.BEACON);
+
+        rec(DaggerType.FROST,
+            Material.NAUTILUS_SHELL,        Material.ENCHANTED_GOLDEN_APPLE, Material.BEACON,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.POWDER_SNOW_BUCKET,
+            Material.NETHERITE_SHOVEL,      Material.PEARLESCENT_FROGLIGHT,  Material.ICE);
+
+        rec(DaggerType.MAFIA,
+            Material.DEEPSLATE_EMERALD_ORE, Material.ENCHANTED_GOLDEN_APPLE, Material.NAME_TAG,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NAUTILUS_SHELL,
+            Material.EYE_ARMOR_TRIM_SMITHING_TEMPLATE, Material.DEEPSLATE_EMERALD_ORE, Material.BLACKSTONE);
+
+        rec(DaggerType.PIRATE,
+            Material.COAST_ARMOR_TRIM_SMITHING_TEMPLATE, Material.ENCHANTED_GOLDEN_APPLE, Material.TRIDENT,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.HEART_OF_THE_SEA,
+            Material.TURTLE_SCUTE,          Material.NAUTILUS_SHELL,         Material.BLACKSTONE);
+
+        rec(DaggerType.VOID,
+            Material.DRAGON_HEAD,           Material.ENCHANTED_GOLDEN_APPLE, Material.DRAGON_BREATH,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.ELYTRA,
+            Material.SHULKER_SHELL,         Material.SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE, Material.END_STONE);
+
+        rec(DaggerType.LUCKY,
+            Material.EMERALD_ORE,           Material.ENCHANTED_GOLDEN_APPLE, Material.DEEPSLATE_EMERALD_ORE,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.MUSIC_DISC_11,
+            Material.CREEPER_HEAD,          Material.EMERALD_BLOCK,          Material.SKELETON_SKULL);
+
+        rec(DaggerType.MIRROR,
+            Material.ANCIENT_DEBRIS,        Material.ENCHANTED_GOLDEN_APPLE, Material.NAUTILUS_SHELL,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.TINTED_GLASS,
+            Material.CREAKING_HEART,        Material.ENDER_EYE,              Material.AMETHYST_BLOCK);
+
+        rec(DaggerType.JUNGLE,
+            Material.MOSSY_COBBLESTONE,     Material.ENCHANTED_GOLDEN_APPLE, Material.WARPED_ROOTS,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.VINE,
+            Material.WILD_ARMOR_TRIM_SMITHING_TEMPLATE, Material.WEEPING_VINES, Material.TWISTING_VINES);
+
+        rec(DaggerType.MIDAS,
+            Material.SKELETON_SKULL,        Material.ENCHANTED_GOLDEN_APPLE, Material.NAUTILUS_SHELL,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.GOLDEN_HORSE_ARMOR,
+            Material.EYE_ARMOR_TRIM_SMITHING_TEMPLATE, Material.GOLD_BLOCK,  Material.GOLD_INGOT);
+
+        rec(DaggerType.TOXIC,
+            Material.POISONOUS_POTATO,      Material.ENCHANTED_GOLDEN_APPLE, Material.PUFFERFISH_BUCKET,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.SLIME_BALL,
+            Material.NAUTILUS_SHELL,        Material.FERMENTED_SPIDER_EYE,   Material.SPIDER_EYE);
+
+        rec(DaggerType.ARACHNID,
+            Material.FERMENTED_SPIDER_EYE,  Material.ENCHANTED_GOLDEN_APPLE, Material.NAUTILUS_SHELL,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.DIAMOND_BLOCK,
+            Material.COBWEB,                Material.SHEARS,                 Material.SPIDER_EYE);
+
+        rec(DaggerType.VAMPIRE,
+            Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE, Material.ENCHANTED_GOLDEN_APPLE, Material.NAUTILUS_SHELL,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.TOTEM_OF_UNDYING,
+            Material.WITHER_SKELETON_SKULL, Material.REDSTONE,               Material.SPIDER_EYE);
+
+        rec(DaggerType.GRAVITY,
+            Material.WARD_ARMOR_TRIM_SMITHING_TEMPLATE, Material.ENCHANTED_GOLDEN_APPLE, Material.WATER_BUCKET,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.HEAVY_CORE,
+            Material.DRIED_GHAST,           Material.FLOW_ARMOR_TRIM_SMITHING_TEMPLATE, Material.SAND);
+
+        rec(DaggerType.EARTH,
+            Material.DIAMOND_ORE,           Material.ENCHANTED_GOLDEN_APPLE, Material.DIAMOND_BLOCK,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.DEEPSLATE_EMERALD_ORE,
+            Material.DEEPSLATE_COAL_ORE,    Material.MYCELIUM,               Material.DIRT);
+
+        rec(DaggerType.TITAN,
+            Material.NETHERITE_HELMET,      Material.ENCHANTED_GOLDEN_APPLE, Material.NETHERITE_CHESTPLATE,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.SPYGLASS,
+            Material.DIAMOND_PICKAXE,       Material.NETHERITE_LEGGINGS,     Material.NETHERITE_BOOTS);
+
+        rec(DaggerType.GUARDIAN,
+            Material.PRISMARINE_SHARD,      Material.ENCHANTED_GOLDEN_APPLE, Material.SPONGE,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.NETHERITE_PICKAXE,
+            Material.TIDE_ARMOR_TRIM_SMITHING_TEMPLATE, Material.PRISMARINE_CRYSTALS, Material.SEA_LANTERN);
+
+        rec(DaggerType.GHOST,
+            Material.CANDLE,                Material.ENCHANTED_GOLDEN_APPLE, Material.SOUL_CAMPFIRE,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.SOUL_LANTERN,
+            Material.WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE, Material.DIAMOND_BLOCK, Material.PHANTOM_MEMBRANE);
+
+        rec(DaggerType.CHANCE,
+            Material.NAUTILUS_SHELL,        Material.ENCHANTED_GOLDEN_APPLE, Material.DEEPSLATE_EMERALD_ORE,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.CONDUIT,
+            Material.DRAGON_EGG,            Material.BEACON,                 ANY);
+
+        rec(DaggerType.STORM,
+            Material.NAUTILUS_SHELL,        Material.ENCHANTED_GOLDEN_APPLE, Material.TRIDENT,
+            Material.NETHER_STAR,           Material.NETHERITE_SWORD,        Material.CREEPER_HEAD,
+            Material.LIGHTNING_ROD,         Material.ZOMBIE_HEAD,            Material.GHAST_TEAR);
     }
 
-    private void rec(DaggerType type, Material ... mats) {
+    private RecipeChoice getAnyItemChoice() {
+        if (this.anyItemChoice == null) {
+            List<Material> items = new ArrayList<>();
+            for (Material m : Material.values()) {
+                if (m.isItem() && !m.isAir() && !m.isLegacy()) {
+                    items.add(m);
+                }
+            }
+            this.anyItemChoice = new RecipeChoice.MaterialChoice(items);
+        }
+        return this.anyItemChoice;
+    }
+
+    private void rec(DaggerType type, Object... mats) {
         this.recipeMaterials.put(type, mats);
-        NamespacedKey key = new NamespacedKey((Plugin)this.plugin, type.getId() + "_dagger");
+        NamespacedKey key = new NamespacedKey((Plugin) this.plugin, type.getId() + "_dagger");
         this.plugin.getServer().removeRecipe(key);
         ItemStack result = type.createItem();
         ShapedRecipe r = new ShapedRecipe(key, result);
-        r.shape(new String[]{"ABC", "DEF", "GHI"});
-        char[] keys = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'};
+        r.shape("ABC", "DEF", "GHI");
+        char[] keys = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'};
         for (int i = 0; i < 9; ++i) {
-            r.setIngredient(keys[i], mats[i]);
+            Object o = mats[i];
+            if (o == ANY) {
+                r.setIngredient(keys[i], getAnyItemChoice());
+            } else if (o instanceof Material) {
+                r.setIngredient(keys[i], (Material) o);
+            } else if (o instanceof RecipeChoice) {
+                r.setIngredient(keys[i], (RecipeChoice) o);
+            }
         }
-        this.plugin.getServer().addRecipe((Recipe)r);
+        this.plugin.getServer().addRecipe((Recipe) r);
     }
 
     public Material[] getRecipeMaterials(DaggerType type) {
-        return this.recipeMaterials.get((Object)type);
+        Object[] mats = this.recipeMaterials.get(type);
+        if (mats == null) return null;
+        Material[] out = new Material[mats.length];
+        for (int i = 0; i < mats.length; i++) {
+            out[i] = (mats[i] instanceof Material) ? (Material) mats[i] : Material.BARRIER;
+        }
+        return out;
     }
 
     public DaggerType getDaggerType(ItemStack item) {
         return DaggerType.fromItem(item);
     }
 }
-

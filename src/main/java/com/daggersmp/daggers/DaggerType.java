@@ -28,40 +28,46 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 public enum DaggerType {
-    STRENGTH("strength", "\u00a7c\u00a7lStrength Dagger", "\u00a7c"),
-    SPEED("speed", "\u00a7b\u00a7lSpeed Dagger", "\u00a7b"),
-    WIND("wind", "\u00a7f\u00a7lWind Dagger", "\u00a7f"),
-    LIFE("life", "\u00a7a\u00a7lLife Dagger", "\u00a7a"),
-    CRIMSON("crimson", "\u00a74\u00a7lCrimson Dagger", "\u00a74"),
-    DARKNESS("darkness", "\u00a78\u00a7lDarkness Dagger", "\u00a78"),
-    HACK("hack", "\u00a72\u00a7lHack Dagger", "\u00a72"),
-    FROST("frost", "\u00a73\u00a7lFrost Dagger", "\u00a73"),
-    MAFIA("mafia", "\u00a76\u00a7lMafia Dagger", "\u00a76"),
-    PIRATE("pirate", "\u00a79\u00a7lPirate Dagger", "\u00a79"),
-    VOID("void", "\u00a75\u00a7lVoid Dagger", "\u00a75"),
-    LUCKY("lucky", "\u00a7e\u00a7lLucky Dagger", "\u00a7e"),
-    MIRROR("mirror", "\u00a77\u00a7lMirror Dagger", "\u00a77"),
-    JUNGLE("jungle", "\u00a72\u00a7lJungle Dagger", "\u00a72"),
-    MIDAS("midas", "\u00a76\u00a7lMidas Dagger", "\u00a76"),
-    TOXIC("toxic", "\u00a7a\u00a7lToxic Dagger", "\u00a7a"),
-    ARACHNID("arachnid", "\u00a78\u00a7lArachnid Dagger", "\u00a78"),
-    VAMPIRE("vampire", "\u00a74\u00a7lVampire Dagger", "\u00a74"),
-    GRAVITY("gravity", "\u00a75\u00a7lGravity Dagger", "\u00a75"),
-    EARTH("earth", "\u00a76\u00a7lEarth Dagger", "\u00a76"),
-    TITAN("titan", "\u00a7c\u00a7lTitan Dagger", "\u00a7c"),
-    GUARDIAN("guardian", "\u00a7b\u00a7lGuardian Dagger", "\u00a7b"),
-    GHOST("ghost", "\u00a77\u00a7lGhost Dagger", "\u00a77"),
-    CHANCE("chance", "\u00a7d\u00a7lChance Dagger", "\u00a7d"),
-    STORM("storm", "\u00a7e\u00a7lStorm Dagger", "\u00a7e");
+    STRENGTH("strength", "\u00a7c\u00a7lStrength Dagger", "\u00a7c", 1001),
+    SPEED("speed", "\u00a7b\u00a7lSpeed Dagger", "\u00a7b", 1002),
+    WIND("wind", "\u00a7f\u00a7lWind Dagger", "\u00a7f", 1003),
+    LIFE("life", "\u00a7a\u00a7lLife Dagger", "\u00a7a", 1004),
+    CRIMSON("crimson", "\u00a74\u00a7lCrimson Dagger", "\u00a74", 1005),
+    DARKNESS("darkness", "\u00a78\u00a7lDarkness Dagger", "\u00a78", 1006),
+    HACK("hack", "\u00a72\u00a7lHack Dagger", "\u00a72", 1007),
+    FROST("frost", "\u00a73\u00a7lFrost Dagger", "\u00a73", 1008),
+    MAFIA("mafia", "\u00a76\u00a7lMafia Dagger", "\u00a76", 1009),
+    PIRATE("pirate", "\u00a79\u00a7lPirate Dagger", "\u00a79", 1010),
+    VOID("void", "\u00a75\u00a7lVoid Dagger", "\u00a75", 1011),
+    LUCKY("lucky", "\u00a7e\u00a7lLucky Dagger", "\u00a7e", 1012),
+    MIRROR("mirror", "\u00a77\u00a7lMirror Dagger", "\u00a77", 1013),
+    JUNGLE("jungle", "\u00a72\u00a7lJungle Dagger", "\u00a72", 1014),
+    MIDAS("midas", "\u00a76\u00a7lMidas Dagger", "\u00a76", 1015),
+    TOXIC("toxic", "\u00a7a\u00a7lToxic Dagger", "\u00a7a", 1016),
+    ARACHNID("arachnid", "\u00a78\u00a7lArachnid Dagger", "\u00a78", 1017),
+    VAMPIRE("vampire", "\u00a74\u00a7lVampire Dagger", "\u00a74", 1018),
+    GRAVITY("gravity", "\u00a75\u00a7lGravity Dagger", "\u00a75", 1019),
+    EARTH("earth", "\u00a76\u00a7lEarth Dagger", "\u00a76", 1020),
+    TITAN("titan", "\u00a7c\u00a7lTitan Dagger", "\u00a7c", 1021),
+    GUARDIAN("guardian", "\u00a7b\u00a7lGuardian Dagger", "\u00a7b", 1022),
+    GHOST("ghost", "\u00a77\u00a7lGhost Dagger", "\u00a77", 1023),
+    CHANCE("chance", "\u00a7d\u00a7lChance Dagger", "\u00a7d", 1024),
+    STORM("storm", "\u00a7e\u00a7lStorm Dagger", "\u00a7e", 1025);
 
     private final String id;
     private final String displayName;
     private final String color;
+    private final int customModelData;
 
-    private DaggerType(String id, String displayName, String color) {
+    private DaggerType(String id, String displayName, String color, int customModelData) {
         this.id = id;
         this.displayName = displayName;
         this.color = color;
+        this.customModelData = customModelData;
+    }
+
+    public int getCustomModelData() {
+        return this.customModelData;
     }
 
     public String getId() {
@@ -88,6 +94,7 @@ public enum DaggerType {
         meta.addEnchant(Enchantment.LOOTING, 3, true);
         meta.addEnchant(Enchantment.SWEEPING_EDGE, 3, true);
         meta.setUnbreakable(true);
+        meta.setCustomModelData(this.customModelData);
         if (this == CRIMSON) {
             meta.addEnchant(Enchantment.FIRE_ASPECT, 5, true);
         }
