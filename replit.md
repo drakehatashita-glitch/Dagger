@@ -9,7 +9,7 @@ A Minecraft Paper plugin (Java 21, Paper API 1.21) providing custom dagger abili
 - `pom.xml` — Maven build (Paper API 1.21.11-R0.1-SNAPSHOT, Java 21)
 - `DaggerSMP-2.2.0.jar` — prebuilt plugin jar (canonical build)
 - `server/` — Paper server runtime
-  - `paper.jar` — Paper 1.21.1 server
+  - `paper.jar` — Paper 1.21.8 server (upgraded from 1.21.1 to support `CREAKING_HEART` / `DRIED_GHAST` materials referenced by the plugin)
   - `plugins/DaggerSMP-2.2.0.jar` — installed plugin
   - `eula.txt`, `server.properties`, world data
 
