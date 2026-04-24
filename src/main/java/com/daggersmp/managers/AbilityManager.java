@@ -1777,6 +1777,8 @@ public class AbilityManager {
     private void stormAbility2(final Player p) {
         final double dmg = this.cfgD("daggers.storm.ability2.damage", 4.0);
         final double radius = this.cfgD("daggers.storm.ability2.radius", 5.0);
+        // AOE radius around each individual bolt strike — generous so the bolt always hits whatever it lands near.
+        final double aoeRadius = this.cfgD("daggers.storm.ability2.aoe-radius", 3.5);
         final double durSec = this.cfgD("daggers.storm.ability2.duration-seconds", 5.0);
         final long boltIntervalTicks = (long) this.cfgD("daggers.storm.ability2.bolt-interval-ticks", 8.0);
         final Location anchor = p.getLocation().clone();
@@ -1792,19 +1794,26 @@ public class AbilityManager {
                 }
                 // Re-anchor the storm to the player's CURRENT position so it follows them.
                 Location center = p.isOnline() ? p.getLocation() : anchor;
-                // Prefer striking ON a nearby valid target so the bolt actually deals damage.
+                // Pick a strike location: prefer a random valid target so the bolt visibly lands on something hostile.
                 java.util.List<LivingEntity> candidates = new java.util.ArrayList<LivingEntity>();
                 for (Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
                     if (!(e instanceof LivingEntity)) continue;
                     LivingEntity le = (LivingEntity) e;
-                    if (le == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
+                    if (le == p) continue;
+                    if (AbilityManager.this.isTrustedEntity(p, e)) continue;
+                    if (le instanceof org.bukkit.entity.ArmorStand) continue;
+                    if (le.isInvulnerable() || le.isDead() || !le.isValid()) continue;
+                    // Don't pick the player's own Mafia minions as a strike target.
+                    if (le.hasMetadata("dagger_mafia_owner")) {
+                        String owner = ((MetadataValue) le.getMetadata("dagger_mafia_owner").get(0)).asString();
+                        if (owner.equals(p.getUniqueId().toString())) continue;
+                    }
                     candidates.add(le);
                 }
-                LivingEntity target = null;
                 Location strike;
                 if (!candidates.isEmpty()) {
-                    target = candidates.get(AbilityManager.this.random.nextInt(candidates.size()));
-                    strike = target.getLocation().clone();
+                    LivingEntity picked = candidates.get(AbilityManager.this.random.nextInt(candidates.size()));
+                    strike = picked.getLocation().clone();
                 } else {
                     double angle = AbilityManager.this.random.nextDouble() * Math.PI * 2.0;
                     double dist = AbilityManager.this.random.nextDouble() * radius;
@@ -1821,15 +1830,21 @@ public class AbilityManager {
                 strike.getWorld().strikeLightningEffect(strike);
                 strike.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, strike, 40, 0.6, 0.4, 0.6, 0.2);
                 strike.getWorld().spawnParticle(Particle.FLASH, strike, 1, 0.0, 0.0, 0.0, 0.0);
-                if (target != null && target.isValid() && !target.isDead()) {
-                    target.setNoDamageTicks(0);
-                    target.damage(dmg, (Entity) p);
-                } else {
-                    for (Entity e : strike.getWorld().getNearbyEntities(strike, 2.5, 3.0, 2.5)) {
-                        LivingEntity le;
-                        if (!(e instanceof LivingEntity) || (le = (LivingEntity)e) == p || AbilityManager.this.isTrustedEntity(p, e)) continue;
-                        le.damage(dmg, (Entity) p);
+                // AoE damage around the bolt landing point — catches the picked target AND any nearby mob/player.
+                // Done last so the lightning visual is registered even if damage code throws.
+                for (Entity e : strike.getWorld().getNearbyEntities(strike, aoeRadius, aoeRadius + 1.5, aoeRadius)) {
+                    if (!(e instanceof LivingEntity)) continue;
+                    LivingEntity le = (LivingEntity) e;
+                    if (le == p) continue;
+                    if (AbilityManager.this.isTrustedEntity(p, e)) continue;
+                    if (le instanceof org.bukkit.entity.ArmorStand) continue;
+                    if (le.isInvulnerable() || le.isDead() || !le.isValid()) continue;
+                    if (le.hasMetadata("dagger_mafia_owner")) {
+                        String owner = ((MetadataValue) le.getMetadata("dagger_mafia_owner").get(0)).asString();
+                        if (owner.equals(p.getUniqueId().toString())) continue;
                     }
+                    le.setNoDamageTicks(0);
+                    le.damage(dmg, (Entity) p);
                 }
             }
         }.runTaskTimer((Plugin)this.plugin, 0L, boltIntervalTicks);

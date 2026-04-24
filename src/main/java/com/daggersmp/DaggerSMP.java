@@ -47,6 +47,7 @@ extends JavaPlugin {
     public void onEnable() {
         instance = this;
         this.saveDefaultConfig();
+        this.migrateConfig();
         this.cooldownManager = new CooldownManager(this);
         this.trustManager = new TrustManager(this);
         this.voidStateManager = new VoidStateManager(this);
@@ -78,6 +79,39 @@ extends JavaPlugin {
         a2c.setExecutor((CommandExecutor)a2);
         a2c.setTabCompleter((TabCompleter)a2);
         this.getLogger().info("DaggerSMP 2.2.0 enabled (Paper 1.21.11, Java 21).");
+    }
+
+    /**
+     * One-time migration of stale config keys from older v2.2.0 builds to the current rewritten defaults.
+     * Bukkit's getDouble/getString/etc. return the SAVED value if present (ignoring the new default in
+     * the bundled config.yml), so old saved configs would otherwise shadow the new behavior. This forces
+     * the rewritten knobs back to the new values and persists them.
+     */
+    private void migrateConfig() {
+        org.bukkit.configuration.file.FileConfiguration cfg = this.getConfig();
+        int currentVersion = cfg.getInt("config-version", 0);
+        int targetVersion = 3;
+        if (currentVersion >= targetVersion) {
+            return;
+        }
+        // v3 — rewritten gravity passive, earth A1 obsidian, wind A1 dash 20, mirror A1 reflect 50%, storm A2 hits.
+        cfg.set("daggers.gravity.passive.min-fall-blocks", 10.0);
+        cfg.set("daggers.gravity.passive.shockwave-radius", 5.0);
+        cfg.set("daggers.gravity.passive.damage-per-block", 0.4);
+        cfg.set("daggers.gravity.passive.max-damage", 10.0);
+        cfg.set("daggers.gravity.passive.explosion-power-base", 1.5);
+        cfg.set("daggers.gravity.passive.explosion-power-per-block", 0.08);
+        cfg.set("daggers.gravity.passive.explosion-power-max", 6.0);
+        cfg.set("daggers.gravity.passive.explosion-break-blocks", false);
+        cfg.set("daggers.earth.ability1.material", "OBSIDIAN");
+        cfg.set("daggers.wind.ability1.dash-blocks", 20.0);
+        cfg.set("daggers.mirror.ability1.reflect-percent", 0.5);
+        cfg.set("daggers.storm.ability2.damage", 4.0);
+        cfg.set("daggers.storm.ability2.radius", 5.0);
+        cfg.set("daggers.storm.ability2.aoe-radius", 3.5);
+        cfg.set("config-version", targetVersion);
+        this.saveConfig();
+        this.getLogger().info("DaggerSMP config migrated to v" + targetVersion + " (gravity/earth/wind/mirror/storm rewrites).");
     }
 
     public void onDisable() {

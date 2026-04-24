@@ -1,4 +1,6 @@
 # ─── GLOBAL SETTINGS ─────────────────────────────────────────────
+# config-version is auto-managed by the plugin's migration system. Do not edit by hand.
+config-version: 3
 settings:
   broadcast-craft: true
 
@@ -400,3 +402,6 @@ daggers:
       cooldown-seconds: 60
       damage: 4.0
       radius: 5.0
+      aoe-radius: 3.5
+      bolt-interval-ticks: 8
+      duration-seconds: 5.0

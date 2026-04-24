@@ -326,7 +326,7 @@ public enum DaggerType {
             case 18: {
                 double pdmg = this.cd(c, "ability1.pull-damage", 6.0);
                 int dur = this.ci(c, "ability2.duration-seconds", 5);
-                this.addPassive(lore, "Reduce your fall damage by 50% (shockwave on big falls)");
+                this.addPassive(lore, "Immune to fall damage. Falls of 10+ blocks erupt in a shockwave (bigger fall = bigger boom, up to 5 hearts AoE)");
                 lore.add("");
                 this.addAbility(lore, c, 1, "Create a black hole that pulls entities \u2014 " + pdmg + " HP");
                 this.addAbility(lore, c, 2, "Levitate nearby enemies for " + dur + " seconds");
