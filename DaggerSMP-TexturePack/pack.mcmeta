@@ -1,7 +1,8 @@
 {
   "pack": {
+    "pack_format": 80,
     "min_format": 75,
-    "max_format": 75,
-    "description": "§cDaggerSMP §7— 25 fantasy daggers with themed auras"
+    "max_format": 99,
+    "description": "§cDaggerSMP §7— 25 fantasy daggers (1.21.11)"
   }
 }
