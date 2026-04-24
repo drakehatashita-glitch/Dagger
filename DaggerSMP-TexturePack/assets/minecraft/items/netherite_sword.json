@@ -1,0 +1,34 @@
+{
+  "model": {
+    "type": "minecraft:range_dispatch",
+    "property": "minecraft:custom_model_data",
+    "fallback": {"type": "minecraft:model", "model": "minecraft:item/netherite_sword"},
+    "entries": [
+    {"threshold": 1001, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/strength"}},
+    {"threshold": 1002, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/speed"}},
+    {"threshold": 1003, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/wind"}},
+    {"threshold": 1004, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/life"}},
+    {"threshold": 1005, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/crimson"}},
+    {"threshold": 1006, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/darkness"}},
+    {"threshold": 1007, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/hack"}},
+    {"threshold": 1008, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/frost"}},
+    {"threshold": 1009, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/mafia"}},
+    {"threshold": 1010, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/pirate"}},
+    {"threshold": 1011, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/void"}},
+    {"threshold": 1012, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/lucky"}},
+    {"threshold": 1013, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/mirror"}},
+    {"threshold": 1014, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/jungle"}},
+    {"threshold": 1015, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/midas"}},
+    {"threshold": 1016, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/toxic"}},
+    {"threshold": 1017, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/arachnid"}},
+    {"threshold": 1018, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/vampire"}},
+    {"threshold": 1019, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/gravity"}},
+    {"threshold": 1020, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/earth"}},
+    {"threshold": 1021, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/titan"}},
+    {"threshold": 1022, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/guardian"}},
+    {"threshold": 1023, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/ghost"}},
+    {"threshold": 1024, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/chance"}},
+    {"threshold": 1025, "model": {"type": "minecraft:model", "model": "minecraft:item/daggers/storm"}}
+    ]
+  }
+}
