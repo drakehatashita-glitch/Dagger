@@ -98,13 +98,16 @@ for row in "${DAGGERS[@]}"; do
   jq . "$DAG_ITEMS_DIR/$id.json" > /dev/null
 done
 
-# pack.mcmeta — pack_format 81 with a wide supported_formats range so the
-# client (1.21.11) accepts it without "made for older version" rejection.
+# pack.mcmeta — Minecraft 1.21.11 = resource pack format 75.
+# Critically, 1.21.9+ replaced `pack_format`/`supported_formats` with the new
+# `min_format` / `max_format` schema (snapshot 25w31a). If you keep using the
+# old `pack_format` field on 1.21.11, the client silently treats the pack as
+# invalid and falls back to vanilla / missing-texture (the "purple block").
 cat > "$ROOT/pack.mcmeta" <<'JSON'
 {
   "pack": {
-    "pack_format": 81,
-    "supported_formats": {"min_inclusive": 46, "max_inclusive": 200},
+    "min_format": 75,
+    "max_format": 75,
     "description": "§cDaggerSMP §7— 25 3D daggers §8(weapons by Gwamba & Quacker, AltarSMP)"
   }
 }
