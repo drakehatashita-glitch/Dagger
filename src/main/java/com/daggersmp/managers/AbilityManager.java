@@ -81,8 +81,6 @@ public class AbilityManager {
     private final Map<UUID, Set<Entity>> mafiaVindicators = new HashMap<UUID, Set<Entity>>();
     private final Map<UUID, List<Block>> earthWalls = new HashMap<UUID, List<Block>>();
     private final Map<UUID, BukkitRunnable> guardianBeamTasks = new HashMap<UUID, BukkitRunnable>();
-    private final Map<UUID, UUID> beamGuardians = new HashMap<UUID, UUID>();
-    private final Map<UUID, UUID> beamAnchors = new HashMap<UUID, UUID>();
     private final Set<UUID> ghostFormActive = new HashSet<UUID>();
     private final Set<UUID> windFallDamageImmune = new HashSet<UUID>();
     private final Map<UUID, DaggerType> chanceActiveDagger = new HashMap<UUID, DaggerType>();
@@ -1590,110 +1588,58 @@ public class AbilityManager {
         final double maxRange = this.cfgD("daggers.guardian.ability1.range", 30.0);
         p.sendMessage("\u00a7bGuardian Beam fired!");
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 2.0f, 1.0f);
-
-        // Spawn an invisible vanilla Guardian so the client renders the real ocean-monument beam.
-        final org.bukkit.entity.Guardian beamGuardian = (org.bukkit.entity.Guardian) p.getWorld().spawnEntity(p.getEyeLocation(), org.bukkit.entity.EntityType.GUARDIAN);
-        beamGuardian.setInvisible(true);
-        beamGuardian.setSilent(true);
-        beamGuardian.setInvulnerable(true);
-        beamGuardian.setCollidable(false);
-        beamGuardian.setAI(false);
-        beamGuardian.setRemoveWhenFarAway(false);
-        beamGuardian.setPersistent(true);
-        try { beamGuardian.setNoPhysics(true); } catch (Throwable ignored) {}
-        // Prevent the guardian from being targetable by mobs/players.
-        try {
-            org.bukkit.attribute.AttributeInstance maxH = beamGuardian.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-            if (maxH != null) { maxH.setBaseValue(1024.0); beamGuardian.setHealth(1024.0); }
-        } catch (Throwable ignored) {}
-
-        // Holder for an invisible armor stand we use as a beam endpoint when nothing is hit.
-        final org.bukkit.entity.ArmorStand[] anchorRef = new org.bukkit.entity.ArmorStand[1];
-        final org.bukkit.entity.ArmorStand anchor = (org.bukkit.entity.ArmorStand) p.getWorld().spawnEntity(p.getEyeLocation(), org.bukkit.entity.EntityType.ARMOR_STAND);
-        anchor.setInvisible(true);
-        anchor.setMarker(true);
-        anchor.setInvulnerable(true);
-        anchor.setSmall(true);
-        anchor.setGravity(false);
-        anchor.setSilent(true);
-        anchor.setCollidable(false);
-        anchor.setPersistent(true);
-        anchor.setRemoveWhenFarAway(false);
-        anchorRef[0] = anchor;
-
-        this.beamGuardians.put(uuid, beamGuardian.getUniqueId());
-        this.beamAnchors.put(uuid, anchor.getUniqueId());
-
         BukkitRunnable beam = new BukkitRunnable(){
             int ticks = 0;
             public void run() {
                 ++this.ticks;
-                if (!p.isOnline() || (long) this.ticks > maxTicks || !beamGuardian.isValid()) {
+                if (!p.isOnline() || (long) this.ticks > maxTicks) {
                     AbilityManager.this.endGuardianBeam(p);
                     this.cancel();
                     return;
                 }
-                Location eye = p.getEyeLocation();
-                Vector dir = eye.getDirection().normalize();
-
-                // Ray-trace for first valid LivingEntity in the look direction (skip the caster, the beam guardian, the anchor, and trusted entities).
-                final org.bukkit.entity.Entity ignoreA = beamGuardian;
-                final org.bukkit.entity.Entity ignoreB = anchorRef[0];
-                org.bukkit.util.RayTraceResult rt = p.getWorld().rayTrace(
-                        eye, dir, maxRange, org.bukkit.FluidCollisionMode.NEVER, true, 0.4,
-                        e -> e != p && e != ignoreA && e != ignoreB && (e instanceof LivingEntity) && !AbilityManager.this.isTrustedEntity(p, e)
-                );
-
-                LivingEntity targetLE = null;
-                Location endLoc;
-                if (rt != null && rt.getHitEntity() instanceof LivingEntity) {
-                    targetLE = (LivingEntity) rt.getHitEntity();
-                    endLoc = targetLE.getEyeLocation();
-                } else {
-                    double dist;
-                    if (rt != null) {
-                        dist = rt.getHitPosition().distance(eye.toVector());
-                    } else {
-                        // Stop at first non-passable block along the ray.
-                        dist = maxRange;
-                        for (double d = 0.0; d < maxRange; d += 0.5) {
-                            Location pt = eye.clone().add(dir.clone().multiply(d));
-                            if (!pt.getBlock().isPassable()) { dist = d; break; }
+                // Periodic re-trigger of the guardian "fire" sound for the locked-on feel.
+                if (this.ticks % 30 == 1) {
+                    p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GUARDIAN_ATTACK, 1.5f, 1.0f);
+                }
+                Location start = p.getEyeLocation();
+                Vector dir = start.getDirection().normalize();
+                // Walk the ray and draw a thick, vanilla-guardian-style beam (purple core + bubble trail).
+                double traveled = 0.0;
+                Set<Entity> hitThisTick = new HashSet<Entity>();
+                Particle.DustOptions corePurple = new Particle.DustOptions(Color.fromRGB(190, 60, 255), 1.6f);
+                Particle.DustOptions edgeCyan = new Particle.DustOptions(Color.fromRGB(120, 220, 255), 1.0f);
+                for (double d = 0.0; d < maxRange; d += 0.25) {
+                    Location pt = start.clone().add(dir.clone().multiply(d));
+                    if (!pt.getBlock().isPassable()) break;
+                    traveled = d;
+                    // Dense purple core
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 4, 0.04, 0.04, 0.04, (Object) corePurple);
+                    // Cyan outer glow
+                    pt.getWorld().spawnParticle(Particle.DUST, pt, 2, 0.10, 0.10, 0.10, (Object) edgeCyan);
+                    // Vanilla guardian attack uses bubbles -- we trail them along the path
+                    if ((this.ticks + (int)(d * 4)) % 2 == 0) {
+                        pt.getWorld().spawnParticle(Particle.BUBBLE, pt, 2, 0.05, 0.05, 0.05, 0.0);
+                    }
+                    if ((this.ticks + (int)(d * 4)) % 6 == 0) {
+                        pt.getWorld().spawnParticle(Particle.END_ROD, pt, 1, 0.0, 0.0, 0.0, 0.0);
+                    }
+                    if (this.ticks % 5 == 0) {
+                        for (Entity e : pt.getWorld().getNearbyEntities(pt, 0.8, 0.8, 0.8)) {
+                            if (e == p || hitThisTick.contains(e) || !(e instanceof LivingEntity)) continue;
+                            if (AbilityManager.this.isTrustedEntity(p, e)) continue;
+                            LivingEntity le = (LivingEntity) e;
+                            le.damage(dmgPerSec, (Entity) p);
+                            Vector cur = e.getVelocity();
+                            Vector kb = e.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(knock);
+                            kb.setY(0.05);
+                            e.setVelocity(cur.add(kb));
+                            hitThisTick.add(e);
                         }
                     }
-                    endLoc = eye.clone().add(dir.clone().multiply(dist));
                 }
-
-                // Position the invisible guardian just in front of the player so the beam visibly originates from them.
-                Location gLoc = eye.clone().add(dir.clone().multiply(0.6));
-                beamGuardian.teleport(gLoc);
-
-                // Update the beam target. The vanilla client will draw the purple/red beam to whichever LivingEntity is set as target.
-                if (targetLE != null) {
-                    beamGuardian.setTarget(targetLE);
-                } else {
-                    org.bukkit.entity.ArmorStand a = anchorRef[0];
-                    if (a == null || !a.isValid()) {
-                        a = (org.bukkit.entity.ArmorStand) p.getWorld().spawnEntity(endLoc, org.bukkit.entity.EntityType.ARMOR_STAND);
-                        a.setInvisible(true); a.setMarker(true); a.setInvulnerable(true);
-                        a.setSmall(true); a.setGravity(false); a.setSilent(true);
-                        a.setCollidable(false); a.setPersistent(true); a.setRemoveWhenFarAway(false);
-                        anchorRef[0] = a;
-                        AbilityManager.this.beamAnchors.put(p.getUniqueId(), a.getUniqueId());
-                    } else {
-                        a.teleport(endLoc);
-                    }
-                    beamGuardian.setTarget(a);
-                }
-
-                // Damage and gentle knockback every 5 ticks (matches vanilla guardian beam cadence).
-                if (targetLE != null && this.ticks % 5 == 0) {
-                    targetLE.damage(dmgPerSec, (Entity) p);
-                    Vector cur = targetLE.getVelocity();
-                    Vector kb = targetLE.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(knock);
-                    kb.setY(0.05);
-                    targetLE.setVelocity(cur.add(kb));
-                }
+                Location end = start.clone().add(dir.clone().multiply(traveled));
+                end.getWorld().spawnParticle(Particle.FLASH, end, 1, 0.0, 0.0, 0.0, 0.0);
+                end.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, end, 6, 0.2, 0.2, 0.2, 0.01);
             }
         };
         beam.runTaskTimer((Plugin)this.plugin, 0L, 1L);
@@ -1709,16 +1655,6 @@ public class AbilityManager {
         BukkitRunnable t = this.guardianBeamTasks.remove(p.getUniqueId());
         if (t != null) {
             t.cancel();
-        }
-        UUID gid = this.beamGuardians.remove(p.getUniqueId());
-        if (gid != null) {
-            org.bukkit.entity.Entity ge = p.getServer().getEntity(gid);
-            if (ge != null && ge.isValid()) ge.remove();
-        }
-        UUID aid = this.beamAnchors.remove(p.getUniqueId());
-        if (aid != null) {
-            org.bukkit.entity.Entity ae = p.getServer().getEntity(aid);
-            if (ae != null && ae.isValid()) ae.remove();
         }
         if (p.isOnline()) {
             p.removeMetadata("dagger_guardian_beam_active", (Plugin)this.plugin);

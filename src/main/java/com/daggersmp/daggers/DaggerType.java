@@ -82,6 +82,18 @@ public enum DaggerType {
         return this.color;
     }
 
+    public boolean hasAbility2() {
+        switch (this) {
+            case LUCKY:
+            case ARACHNID:
+            case VAMPIRE:
+            case CHANCE:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     public ItemStack createItem() {
         ItemStack item = new ItemStack(Material.NETHERITE_SWORD);
         ItemMeta meta = item.getItemMeta();
